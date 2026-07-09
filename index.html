@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI & DATA DRIVEN HR 2026 — ระบบบันทึกความคืบหน้างาน</title>
+<style>
+  :root{
+    --bg:#0b1220; --bg2:#0f1a2e; --card:#111c33; --card2:#152443;
+    --line:#22345c; --line2:#2c4372;
+    --txt:#e8eef8; --muted:#9fb2d0; --muted2:#6f83a6;
+    --gold:#f0b429; --gold2:#ffd66b;
+    --blue:#2b6cff; --blue2:#4d8bff;
+    --c1:#e8a13a; --c2:#2b6cff; --c3:#12a37a; --c4:#7b5cff; --c5:#0f7ac2;
+    --green:#22c58b; --red:#ff5d6c; --amber:#ffb020;
+    --radius:16px; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  [data-theme="light"]{
+    --bg:#eef2f9; --bg2:#e6ecf6; --card:#ffffff; --card2:#f4f7fc;
+    --line:#dde5f1; --line2:#cfd9ea;
+    --txt:#12203a; --muted:#4b5b76; --muted2:#7b89a3;
+    --shadow:0 10px 26px rgba(20,40,80,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Segoe UI",Tahoma,"Sarabun",system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,rgba(43,108,255,.18),transparent 60%),
+               radial-gradient(900px 500px at -10% 10%,rgba(240,180,41,.10),transparent 55%),
+               var(--bg);
+    color:var(--txt); line-height:1.5; min-height:100%;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:22px 20px 80px}
+
+  /* ---------- Header ---------- */
+  header.top{
+    background:linear-gradient(120deg,#0d1b38,#132a54 60%,#0d1b38);
+    border:1px solid var(--line2); border-radius:var(--radius);
+    padding:22px 26px; box-shadow:var(--shadow); overflow:hidden; position:relative;
+  }
+  [data-theme="light"] header.top{background:linear-gradient(120deg,#12305f,#1b47a0 60%,#12305f);color:#fff}
+  header.top::after{content:"";position:absolute;right:-40px;top:-40px;width:260px;height:260px;
+    background:radial-gradient(circle,rgba(240,180,41,.25),transparent 65%);pointer-events:none}
+  .kicker{color:var(--gold2);font-weight:700;letter-spacing:2px;font-size:12px;text-transform:uppercase}
+  header.top h1{color:#fff;font-size:30px;font-weight:800;margin:4px 0 2px;letter-spacing:.3px}
+  header.top h1 span{color:var(--gold)}
+  .goal{color:#c9d8f4;font-size:13.5px;max-width:820px;margin-top:6px}
+  .top-row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{
+    border:1px solid var(--line2);background:rgba(255,255,255,.06);color:#dfe8f7;
+    padding:8px 13px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}
+  .btn.primary{background:var(--gold);color:#3a2a00;border-color:var(--gold)}
+  .btn.primary:hover{background:var(--gold2)}
+  .btn.ghost{background:transparent}
+
+  /* ---------- Overview ---------- */
+  .overview{display:grid;grid-template-columns:1.15fr 2fr;gap:16px;margin-top:18px}
+  @media(max-width:860px){.overview{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 18px;box-shadow:var(--shadow)}
+  .panel h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:14px}
+  .gauge{display:flex;align-items:center;gap:18px}
+  .ring{--p:0;width:118px;height:118px;border-radius:50%;flex:0 0 auto;
+    background:conic-gradient(var(--gold) calc(var(--p)*1%),var(--line) 0);
+    display:grid;place-items:center;position:relative}
+  .ring::before{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--card)}
+  .ring b{position:relative;font-size:28px;font-weight:800}
+  .ring small{position:relative;display:block;text-align:center;color:var(--muted);font-size:11px;font-weight:600}
+  .ov-meta{font-size:13px;color:var(--muted)}
+  .ov-meta .big{font-size:15px;color:var(--txt);font-weight:700}
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:620px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat .n{font-size:24px;font-weight:800}
+  .stat .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .stat.green .n{color:var(--green)} .stat.amber .n{color:var(--amber)}
+  .stat.blue .n{color:var(--blue2)} .stat.muted .n{color:var(--muted)}
+  .stat.risk .n{color:var(--red)}
+
+  .mini-bars{margin-top:6px;display:flex;flex-direction:column;gap:11px}
+  .mini{display:grid;grid-template-columns:26px 1fr 44px;gap:10px;align-items:center;font-size:13px}
+  .mini .tag{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-weight:800;color:#fff;font-size:12px}
+  .bar{height:9px;border-radius:6px;background:var(--line);overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:6px;transition:width .5s ease}
+  .mini .pct{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* ---------- Filters ---------- */
+  .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:22px 0 12px}
+  .filters .lbl{font-size:12px;color:var(--muted2);text-transform:uppercase;letter-spacing:1px}
+  select,input[type=text],input[type=date],textarea{
+    font-family:inherit;background:var(--card);border:1px solid var(--line2);color:var(--txt);
+    border-radius:9px;padding:8px 11px;font-size:13.5px;outline:none}
+  select:focus,input:focus,textarea:focus{border-color:var(--blue2)}
+  .spacer{flex:1}
+
+  /* ---------- Initiative cards ---------- */
+  .cards{display:flex;flex-direction:column;gap:16px}
+  .init{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;border-left:5px solid var(--accent)}
+  .init-head{display:flex;gap:16px;align-items:center;padding:16px 18px;cursor:pointer;user-select:none}
+  .init-head:hover{background:var(--card2)}
+  .num{width:44px;height:44px;flex:0 0 auto;border-radius:12px;display:grid;place-items:center;
+    font-size:20px;font-weight:800;color:#fff;background:var(--accent)}
+  .init-title{flex:1;min-width:0}
+  .init-title h2{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .init-title .en{font-size:12.5px;color:var(--muted);font-weight:600}
+  .owner{font-size:12px;color:var(--muted);margin-top:3px}
+  .owner b{color:var(--txt)}
+  .init-prog{width:190px;flex:0 0 auto;text-align:right}
+  @media(max-width:720px){.init-prog{width:120px}}
+  .init-prog .pnum{font-size:22px;font-weight:800;color:var(--accent)}
+  .init-prog .bar{margin-top:6px}
+  .chev{flex:0 0 auto;color:var(--muted);transition:.2s;font-size:18px}
+  .init.open .chev{transform:rotate(90deg)}
+
+  .badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+  .b-done{background:rgba(34,197,139,.16);color:var(--green)}
+  .b-prog{background:rgba(255,176,32,.16);color:var(--amber)}
+  .b-todo{background:rgba(140,160,190,.16);color:var(--muted)}
+  .b-risk{background:rgba(255,93,108,.16);color:var(--red)}
+
+  /* status select on each milestone */
+  .status-sel{font-weight:700;border-radius:9px;padding:6px 10px;font-size:12.5px;
+    border:1.5px solid var(--line2);cursor:pointer;background:var(--card)}
+  .status-sel.st-todo{color:var(--muted);border-color:var(--line2)}
+  .status-sel.st-prog{color:var(--amber);border-color:rgba(255,176,32,.55)}
+  .status-sel.st-done{color:var(--green);border-color:rgba(34,197,139,.55)}
+  .status-sel.st-risk{color:var(--red);border-color:rgba(255,93,108,.55)}
+
+  /* modal */
+  .modal-bd{position:fixed;inset:0;background:rgba(4,10,22,.62);display:none;
+    align-items:center;justify-content:center;z-index:100;padding:20px}
+  .modal-bd.show{display:flex}
+  .modal{background:var(--card);border:1px solid var(--line2);border-radius:16px;
+    box-shadow:var(--shadow);width:100%;max-width:470px;padding:22px}
+  .modal h4{font-size:17px;margin-bottom:4px}
+  .modal .sub{font-size:13px;color:var(--muted);margin-bottom:6px}
+  .modal label{display:block;font-size:11.5px;color:var(--muted2);text-transform:uppercase;
+    letter-spacing:.5px;margin:14px 0 6px;font-weight:700}
+  .modal .req{color:var(--red)}
+  .modal textarea{width:100%;min-height:88px;resize:vertical}
+  .modal input[type=text]{width:100%}
+  .modal .err{color:var(--red);font-size:12.5px;margin-top:7px;display:none}
+  .modal .actions{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}
+
+  .init-body{display:none;padding:4px 18px 20px;border-top:1px solid var(--line)}
+  .init.open .init-body{display:block}
+  .section-lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);
+    margin:16px 0 10px;font-weight:700}
+  .obj{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:13.5px;color:var(--muted)}
+
+  /* KPI chips */
+  .kpis{display:flex;gap:9px;flex-wrap:wrap}
+  .kpi{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;
+    display:flex;align-items:center;gap:7px}
+  .kpi .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .kpi.hit .dot{background:var(--green)} .kpi.hit{border-color:rgba(34,197,139,.4)}
+
+  /* Milestones */
+  .ms{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:11px;background:var(--card2)}
+  .ms-head{display:flex;align-items:center;gap:12px;padding:12px 14px}
+  .ms-when{font-size:11px;font-weight:800;letter-spacing:.5px;color:#fff;background:var(--accent);
+    padding:4px 10px;border-radius:7px;white-space:nowrap}
+  .ms-title{flex:1;min-width:0}
+  .ms-title .t{font-weight:700;font-size:14.5px}
+  .ms-title .e{font-size:12px;color:var(--muted)}
+  .ms-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .range{display:flex;align-items:center;gap:8px}
+  input[type=range]{width:120px;accent-color:var(--accent);cursor:pointer}
+  .ms-pct{font-weight:800;font-variant-numeric:tabular-nums;width:42px;text-align:right}
+  .ms-body{padding:0 14px 13px}
+  .ms .bar{margin:2px 0 10px}
+  .log-form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:8px}
+  .log-form input[type=text]{flex:1;min-width:180px}
+  .log-form input.who{max-width:150px}
+  .logs{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:7px}
+  .logs li{display:flex;gap:10px;font-size:12.5px;background:var(--card);border:1px solid var(--line);
+    border-radius:9px;padding:8px 11px;align-items:flex-start}
+  .logs .meta{color:var(--muted2);font-size:11px;white-space:nowrap;flex:0 0 auto}
+  .logs .msg{flex:1}
+  .logs .who{color:var(--accent);font-weight:700}
+  .logs .del{color:var(--muted2);cursor:pointer;border:none;background:none;font-size:14px;line-height:1}
+  .logs .del:hover{color:var(--red)}
+  .empty{color:var(--muted2);font-size:12.5px;font-style:italic;padding:6px 2px}
+
+  /* ---------- Steps (per milestone) ---------- */
+  .steps-title{font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;
+    letter-spacing:.5px;margin:12px 0 8px}
+  .step{display:grid;grid-template-columns:130px 1fr 150px auto;gap:10px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:7px}
+  @media(max-width:720px){.step{grid-template-columns:1fr 1fr;gap:8px}}
+  .step-status{font-weight:700;border-radius:8px;padding:6px 8px;font-size:12px;
+    border:1.5px solid var(--line2);cursor:pointer;background:var(--card2)}
+  .step-status.ss-plan{color:var(--muted);border-color:var(--line2)}
+  .step-status.ss-doing{color:var(--amber);border-color:rgba(255,176,32,.55)}
+  .step-status.ss-done{color:var(--green);border-color:rgba(34,197,139,.55)}
+  .step-status.ss-delay{color:var(--red);border-color:rgba(255,93,108,.55)}
+  .step-name{font-size:13.5px;font-weight:600;min-width:0;word-break:break-word}
+  .step-name.done{text-decoration:line-through;color:var(--muted)}
+  .step-due{display:flex;flex-direction:column;gap:2px;font-size:11px}
+  .step-due input[type=date]{padding:5px 8px;font-size:12px}
+  .step-flag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;width:fit-content}
+  .flag-over{background:rgba(255,93,108,.16);color:var(--red)}
+  .flag-soon{background:rgba(255,176,32,.16);color:var(--amber)}
+  .flag-done{background:rgba(34,197,139,.16);color:var(--green)}
+  .step-del{color:var(--muted2);cursor:pointer;border:none;background:none;font-size:15px;justify-self:end}
+  .step-del:hover{color:var(--red)}
+  .step-add{display:grid;grid-template-columns:1fr 160px auto;gap:9px;align-items:center;margin:4px 0 6px}
+  @media(max-width:720px){.step-add{grid-template-columns:1fr}}
+  .step-add input[type=text],.step-add input[type=date]{width:100%}
+  .step-empty{color:var(--muted2);font-size:12.5px;font-style:italic;padding:2px 2px 8px}
+
+  /* ---------- Summary & Timeline ---------- */
+  .stpanel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-top:18px;overflow:hidden}
+  .stp-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .stp-head h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-right:auto}
+  .seg{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:3px}
+  .seg button{border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:700;
+    font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;transition:.15s}
+  .seg button.active{background:var(--blue);color:#fff}
+  .stp-body{padding:18px}
+  .view{display:none} .view.active{display:block}
+
+  .sum-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}
+  @media(max-width:800px){.sum-grid{grid-template-columns:1fr}}
+  .insights{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .insights li{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;
+    background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+  .insights .ic{font-size:16px;flex:0 0 auto}
+  .insights b{color:var(--txt);font-weight:800}
+  .sum-side h4{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);margin-bottom:12px;font-weight:700}
+  .feed{list-style:none;display:flex;flex-direction:column;position:relative}
+  .feed li{display:flex;gap:12px;padding:0 0 14px 0;position:relative}
+  .feed .fdot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;margin-top:3px;position:relative;z-index:1}
+  .feed li:not(:last-child)::before{content:"";position:absolute;left:5px;top:11px;bottom:-3px;width:2px;background:var(--line)}
+  .feed .fc{font-size:12.5px}
+  .feed .fmeta{color:var(--muted2);font-size:11px;margin-top:3px}
+
+  .tl{display:flex;flex-direction:column}
+  .tl-period{position:relative;padding:0 0 4px 28px;margin-bottom:16px}
+  .tl-period::before{content:"";position:absolute;left:8px;top:22px;bottom:-14px;width:2px;background:var(--line)}
+  .tl-period:last-child::before{display:none}
+  .tl-dot{position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;
+    border:3px solid var(--card);z-index:1}
+  .tl-when{font-weight:800;font-size:14.5px;margin-bottom:2px}
+  .tl-sub{font-size:11.5px;color:var(--muted2);margin-bottom:10px}
+  .tl-item{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);
+    border-radius:10px;padding:9px 12px;margin-bottom:7px;flex-wrap:wrap}
+  .tl-item .tnum{width:22px;height:22px;border-radius:6px;color:#fff;font-weight:800;font-size:11px;
+    display:grid;place-items:center;flex:0 0 auto}
+  .tl-item .tt{flex:1;min-width:140px;font-size:13.5px;font-weight:600}
+  .tl-item .tpct{font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
+
+  footer{margin-top:26px;text-align:center;color:var(--muted2);font-size:12px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(30px);
+    background:var(--card2);border:1px solid var(--line2);color:var(--txt);padding:11px 18px;border-radius:12px;
+    box-shadow:var(--shadow);font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:99}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media print{
+    .toolbar,.filters,.log-form,.btn,input[type=range],.chev{display:none!important}
+    body{background:#fff;color:#000}
+    .init-body{display:block!important}
+    .panel,.init,header.top{box-shadow:none;border-color:#ccc}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <div class="kicker">แผนงาน HR Transformation Roadmap · Phase 1</div>
+        <h1>AI &amp; DATA DRIVEN <span>HR 2026</span></h1>
+        <div class="goal" data-th="🎯 เป้าหมายหลัก: ยกระดับการบริหารทรัพยากรบุคคลด้วย AI และ Data เพื่อเพิ่ม Productivity ลดต้นทุน และสนับสนุนการตัดสินใจของผู้บริหาร"
+             data-en="🎯 Our Goal: Elevate HR management with AI and Data to increase Productivity, reduce cost, and support executive decision-making.">
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" id="langBtn" title="Toggle language">🌐 EN</button>
+        <button class="btn ghost" id="themeBtn" title="Toggle theme">🌙</button>
+        <button class="btn ghost" id="printBtn">🖨️ <span data-th="พิมพ์รายงาน" data-en="Print">พิมพ์รายงาน</span></button>
+        <button class="btn ghost" id="exportBtn">⬇️ <span data-th="ส่งออก" data-en="Export">ส่งออก</span></button>
+        <button class="btn ghost" id="importBtn">⬆️ <span data-th="นำเข้า" data-en="Import">นำเข้า</span></button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+        <button class="btn ghost" id="resetBtn" title="Reset all data">↺</button>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="overview">
+      <div class="panel">
+        <h3 data-th="ความคืบหน้าโดยรวม" data-en="Overall Progress">ความคืบหน้าโดยรวม</h3>
+        <div class="gauge">
+          <div class="ring" id="ring"><b id="ringPct">0%</b><small data-th="เสร็จสิ้น" data-en="Complete">เสร็จสิ้น</small></div>
+          <div class="ov-meta">
+            <div><span class="big" id="ovDone">0</span> / <span id="ovTotal">0</span> <span data-th="งานย่อยเสร็จสมบูรณ์" data-en="milestones complete">งานย่อยเสร็จสมบูรณ์</span></div>
+            <div style="margin-top:6px"><span data-th="อัปเดตล่าสุด:" data-en="Last updated:">อัปเดตล่าสุด:</span> <b id="lastUpd">—</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="stat-row">
+          <div class="stat green"><div class="n" id="sDone">0</div><div class="l" data-th="เสร็จสิ้น" data-en="Done">เสร็จสิ้น</div></div>
+          <div class="stat amber"><div class="n" id="sProg">0</div><div class="l" data-th="กำลังทำ" data-en="In progress">กำลังทำ</div></div>
+          <div class="stat muted"><div class="n" id="sTodo">0</div><div class="l" data-th="ยังไม่เริ่ม" data-en="Not started">ยังไม่เริ่ม</div></div>
+          <div class="stat risk"><div class="n" id="sRisk">0</div><div class="l" data-th="ล่าช้า/มีปัญหา" data-en="At risk">ล่าช้า/มีปัญหา</div></div>
+        </div>
+        <div class="mini-bars" id="miniBars"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SUMMARY & TIMELINE (auto) -->
+  <section class="stpanel">
+    <div class="stp-head">
+      <h3 data-th="สรุป &amp; ไทม์ไลน์ (สร้างอัตโนมัติ)" data-en="Summary &amp; Timeline (auto-generated)">สรุป &amp; ไทม์ไลน์ (สร้างอัตโนมัติ)</h3>
+      <div class="seg">
+        <button id="segSum" class="active" data-th="📊 สรุปความคืบหน้า" data-en="📊 Progress Summary">📊 สรุปความคืบหน้า</button>
+        <button id="segTl" data-th="🗓️ ไทม์ไลน์งาน" data-en="🗓️ Work Timeline">🗓️ ไทม์ไลน์งาน</button>
+      </div>
+    </div>
+    <div class="stp-body">
+      <div class="view active" id="viewSummary">
+        <div class="sum-grid">
+          <ul class="insights" id="insights"></ul>
+          <div class="sum-side">
+            <h4 data-th="กิจกรรมล่าสุด" data-en="Recent activity">กิจกรรมล่าสุด</h4>
+            <ul class="feed" id="feed"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="view" id="viewTimeline">
+        <div class="tl" id="timeline"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <span class="lbl" data-th="กรอง" data-en="Filter">กรอง</span>
+    <select id="fOwner"><option value="" data-th="ผู้รับผิดชอบทั้งหมด" data-en="All owners">ผู้รับผิดชอบทั้งหมด</option></select>
+    <select id="fStatus">
+      <option value="" data-th="ทุกสถานะ" data-en="All statuses">ทุกสถานะ</option>
+      <option value="done" data-th="เสร็จสิ้น" data-en="Done">เสร็จสิ้น</option>
+      <option value="prog" data-th="กำลังทำ" data-en="In progress">กำลังทำ</option>
+      <option value="risk" data-th="ล่าช้า/มีปัญหา" data-en="At risk">ล่าช้า/มีปัญหา</option>
+      <option value="todo" data-th="ยังไม่เริ่ม" data-en="Not started">ยังไม่เริ่ม</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="expandAll" data-th="ขยายทั้งหมด" data-en="Expand all">ขยายทั้งหมด</button>
+    <button class="btn ghost" id="collapseAll" data-th="ย่อทั้งหมด" data-en="Collapse all">ย่อทั้งหมด</button>
+  </div>
+
+  <!-- CARDS -->
+  <div class="cards" id="cards"></div>
+
+  <footer>
+    <span data-th="ระบบบันทึกความคืบหน้างาน · ข้อมูลบันทึกอัตโนมัติในเครื่องของคุณ (LocalStorage)"
+          data-en="Work Progress Tracker · Data is saved automatically in your browser (LocalStorage)">
+      ระบบบันทึกความคืบหน้างาน · ข้อมูลบันทึกอัตโนมัติในเครื่องของคุณ (LocalStorage)
+    </span>
+  </footer>
+</div>
+
+<!-- STATUS MODAL -->
+<div class="modal-bd" id="statusModal">
+  <div class="modal">
+    <h4 id="smTitle">อัปเดตสถานะงาน</h4>
+    <div class="sub" id="smSub"></div>
+    <label id="smDetailLbl">รายละเอียด <span class="req">*</span></label>
+    <textarea id="smDetail"></textarea>
+    <div class="err" id="smErr"></div>
+    <label id="smWhoLbl">ผู้บันทึก</label>
+    <input type="text" id="smWho">
+    <div class="actions">
+      <button class="btn ghost" id="smCancel">ยกเลิก</button>
+      <button class="btn primary" id="smSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   AI & DATA DRIVEN HR 2026 — Work Progress Tracker
+   Single-file app · data in localStorage
+   ============================================================ */
+
+const STORE_KEY = 'hr2026_tracker_v1';
+const PREF_KEY  = 'hr2026_prefs_v1';
+
+/* ---- Default plan data (from the roadmap) ---- */
+const SEED = {
+  initiatives: [
+    {
+      id:'i1', color:'#e8a13a',
+      titleTH:'พัฒนาหัวหน้างานให้เป็น Coach', titleEN:'Leadership Coaching',
+      tagEN:'Leadership Coaching',
+      owner:'คุณณัฐพล สิงห์ชัย (ASM) · Nathaphon Singchai',
+      objTH:'หัวหน้างานสามารถพัฒนาบุคคลได้ด้วยตนเองอย่างมีประสิทธิภาพและต่อเนื่อง',
+      objEN:'Supervisors can develop their people effectively by themselves.',
+      kpis:[
+        {th:'Productivity +15%',en:'Productivity +15%',hit:false},
+        {th:'ลด Turnover',en:'Turnover Reduction',hit:false},
+        {th:'พนักงานเกรด F ลดลง ≥20%',en:'Grade-F employees reduced ≥20%',hit:false}
+      ],
+      milestones:[
+        {id:'m1a',when:'ก.ค. · JUL',titleTH:'อบรมหัวหน้างานทั้งหมด',titleEN:'Train all supervisors',pct:0,logs:[]},
+        {id:'m1b',when:'ส.ค. · AUG',titleTH:'Coaching หัวหน้างานใหม่',titleEN:'Coaching for new supervisors',pct:0,logs:[]},
+        {id:'m1c',when:'ก.ย. · SEP',titleTH:'ติดตามผลและรีวิว',titleEN:'Follow up and review results',pct:0,logs:[]}
+      ]
+    },
+    {
+      id:'i2', color:'#2b6cff',
+      titleTH:'พัฒนาบุคคลให้ใช้ AI ในการทำงาน', titleEN:'AI & Data Skill',
+      tagEN:'AI & Data Skill',
+      owner:'คุณตะวัน ก้อนแพง · Tawan Konpaeng',
+      objTH:'ทุกส่วนงานใช้ AI ลดงาน Manual และเพิ่มประสิทธิภาพการทำงาน',
+      objEN:'Enable every department to use AI and reduce manual tasks.',
+      kpis:[
+        {th:'ลด Manual มากกว่า 30%',en:'Reduce manual work >30%',hit:false},
+        {th:'เพิ่ม Productivity ทุกส่วนงาน',en:'Increase productivity across departments',hit:false},
+        {th:'ขับเคลื่อนองค์กรด้วยข้อมูล',en:'Data Driven Organization',hit:false}
+      ],
+      milestones:[
+        {id:'m2a',when:'ก.ค. · JUL',titleTH:'AI Training',titleEN:'AI Training',pct:0,logs:[]},
+        {id:'m2b',when:'ส.ค. · AUG',titleTH:'Department Use Case',titleEN:'Department Use Case',pct:0,logs:[]},
+        {id:'m2c',when:'ก.ย. · SEP',titleTH:'Daily AI Adoption',titleEN:'Daily AI Adoption',pct:0,logs:[]}
+      ]
+    },
+    {
+      id:'i3', color:'#12a37a',
+      titleTH:'สรรหาเร็วขึ้นด้วย AI', titleEN:'Smart Recruitment',
+      tagEN:'Smart Recruitment',
+      owner:'คุณปัญญาวุธ ศรีเหล่า · Panyawut Srilaow',
+      objTH:'ใช้ AI เพิ่มประสิทธิภาพกระบวนการสรรหาให้เร็วขึ้นและมีคุณภาพ',
+      objEN:'Use AI to increase recruitment efficiency and improve quality.',
+      kpis:[
+        {th:'Recruiter Productivity +30%',en:'Recruiter Productivity +30%',hit:false},
+        {th:'ลด Time to Fill',en:'Reduce time to fill',hit:false},
+        {th:'ลด Early Turnover',en:'Reduce early turnover',hit:false}
+      ],
+      milestones:[
+        {id:'m3a',when:'ก.ค. · JUL',titleTH:'สร้างฐานข้อมูลกลาง',titleEN:'Build central database',pct:0,logs:[]},
+        {id:'m3b',when:'ส.ค. · AUG',titleTH:'ใช้ AI Voice Bot',titleEN:'Implement AI Voice Bot',pct:0,logs:[]},
+        {id:'m3c',when:'ก.ย. · SEP',titleTH:'ประเมินผลและปรับปรุง',titleEN:'Evaluate and improve',pct:0,logs:[]}
+      ]
+    },
+    {
+      id:'i4', color:'#7b5cff',
+      titleTH:'วิเคราะห์ Attendance และ Turnover เชิงรุก', titleEN:'People Analytics',
+      tagEN:'People Analytics',
+      owner:'Hussakarn Pokpong · Supitcha Pinyocheep',
+      objTH:'บริหารจัดการ Attendance และ Turnover เชิงรุกด้วยข้อมูลและการวิเคราะห์',
+      objEN:'Proactively manage attendance and turnover through data and analytics.',
+      kpis:[
+        {th:'Absence rate < 3%',en:'Absence rate < 3%',hit:false},
+        {th:'ลด Turnover',en:'Reduce turnover',hit:false},
+        {th:'ลดการสูญเสียกำลังคน',en:'Reduce loss of manpower',hit:false}
+      ],
+      milestones:[
+        {id:'m4a',when:'ก.ค. · JUL',titleTH:'สร้างฐานข้อมูลกลาง',titleEN:'Build central database',pct:0,logs:[]},
+        {id:'m4b',when:'ส.ค. · AUG',titleTH:'Turnover Dashboard',titleEN:'Turnover Dashboard',pct:0,logs:[]},
+        {id:'m4c',when:'ก.ย. · SEP',titleTH:'Attendance Dashboard',titleEN:'Attendance Dashboard',pct:0,logs:[]},
+        {id:'m4d',when:'ต่อเนื่อง · ONGOING',titleTH:'Employee Chatbot',titleEN:'Employee Chatbot',pct:0,logs:[]}
+      ]
+    },
+    {
+      id:'i5', color:'#0f7ac2',
+      titleTH:'Dashboard สำหรับผู้บริหาร (Real-time HR Data)', titleEN:'Executive Dashboard',
+      tagEN:'Executive Dashboard',
+      owner:'Hussakarn Pokpong · Supitcha Pinyocheep',
+      objTH:'ผู้บริหารเห็นข้อมูล HR แบบ Real-Time เพื่อใช้ตัดสินใจได้รวดเร็ว',
+      objEN:'Provide executives with real-time HR data for faster decision-making.',
+      kpis:[
+        {th:'Dashboard Coverage 100%',en:'Dashboard Coverage 100%',hit:false},
+        {th:'Real-time Decision Support',en:'Real-time Decision Support',hit:false}
+      ],
+      milestones:[
+        {id:'m5a',when:'ระยะที่ 1',titleTH:'Employee Dashboard',titleEN:'Employee Dashboard',pct:0,logs:[]},
+        {id:'m5b',when:'ระยะที่ 2',titleTH:'Attendance Dashboard',titleEN:'Attendance Dashboard',pct:0,logs:[]},
+        {id:'m5c',when:'ระยะที่ 3',titleTH:'Turnover Dashboard',titleEN:'Turnover Dashboard',pct:0,logs:[]},
+        {id:'m5d',when:'ระยะที่ 4',titleTH:'Productivity Dashboard',titleEN:'Productivity Dashboard',pct:0,logs:[]},
+        {id:'m5e',when:'ระยะที่ 5',titleTH:'Executive HR Dashboard',titleEN:'Executive HR Dashboard',pct:0,logs:[]}
+      ]
+    }
+  ]
+};
+
+/* ---- Status definitions ---- */
+const STATUSES = [
+  {key:'todo', th:'ยังไม่เริ่ม',      en:'Not started',       cls:'b-todo'},
+  {key:'prog', th:'กำลังดำเนินการ',   en:'In progress',       cls:'b-prog'},
+  {key:'done', th:'เสร็จสิ้น',        en:'Completed',         cls:'b-done'},
+  {key:'risk', th:'ล่าช้า / มีปัญหา', en:'Delayed / At risk', cls:'b-risk'}
+];
+function statusColor(k){ return {todo:'var(--muted)',prog:'var(--amber)',done:'var(--green)',risk:'var(--red)'}[k]||'var(--muted)'; }
+function statusObj(k){ return STATUSES.find(s=>s.key===k) || STATUSES[0]; }
+
+/* ---- Step (sub-task) definitions ---- */
+const STEP_STATUS = [
+  {key:'plan',  th:'วางแผน',   en:'Planned',     cls:'ss-plan'},
+  {key:'doing', th:'กำลังทำ',  en:'In progress', cls:'ss-doing'},
+  {key:'done',  th:'เสร็จสิ้น', en:'Done',        cls:'ss-done'},
+  {key:'delay', th:'ล่าช้า',   en:'Delayed',     cls:'ss-delay'}
+];
+function stepObj(k){ return STEP_STATUS.find(s=>s.key===k) || STEP_STATUS[0]; }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDay(ds){ if(!ds) return '—'; const d=new Date(ds+'T00:00:00');
+  return d.toLocaleDateString(lang==='th'?'th-TH':'en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
+
+/* ---- Milestone progress derived from its steps ---- */
+function stepStats(m){
+  const steps=m.steps||[];
+  const total=steps.length;
+  const done=steps.filter(s=>s.status==='done').length;
+  const pct=total?Math.round(done/total*100):0;
+  const t=todayStr();
+  const overdue=steps.some(s=>s.status!=='done' && s.due && s.due<t);
+  let status;
+  if(!total) status='todo';
+  else if(done===total) status='done';
+  else if(overdue || steps.some(s=>s.status==='delay')) status='risk';
+  else if(steps.some(s=>s.status==='doing'||s.status==='done')) status='prog';
+  else status='todo';
+  return {total,done,pct,status,overdue};
+}
+/* use steps when present, otherwise fall back to legacy manual values */
+function msPct(m){ return (m.steps&&m.steps.length)? stepStats(m).pct : (m.pct||0); }
+function msStatus(m){ return (m.steps&&m.steps.length)? stepStats(m).status : (m.status||'todo'); }
+
+/* ---- State ---- */
+let data = load();
+let prefs = loadPrefs();
+let lang = prefs.lang || 'th';
+let theme = prefs.theme || 'dark';
+
+function migrate(d){
+  (d.initiatives||[]).forEach(it=>(it.milestones||[]).forEach(m=>{
+    if(!m.status) m.status = m.pct>=100?'done':m.pct>0?'prog':'todo';
+    if(!Array.isArray(m.logs)) m.logs=[];
+    if(!Array.isArray(m.steps)) m.steps=[];
+  }));
+  return d;
+}
+function freshData(){ return migrate(structuredClone(SEED)); }
+function load(){
+  let d=null;
+  try{ const s = localStorage.getItem(STORE_KEY); if(s) d=JSON.parse(s); }catch(e){}
+  if(!d || !d.initiatives) d=structuredClone(SEED);
+  return migrate(d);
+}
+function save(){ data.updatedAt = new Date().toISOString();
+  localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+function loadPrefs(){ try{return JSON.parse(localStorage.getItem(PREF_KEY))||{}}catch(e){return {}} }
+function savePrefs(){ localStorage.setItem(PREF_KEY, JSON.stringify({lang,theme})); }
+
+/* ---- Helpers ---- */
+const $ = s=>document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+function statusOf(pct){ return pct>=100?'done':pct>0?'prog':'todo'; }
+function initPct(it){ if(!it.milestones.length) return 0;
+  return Math.round(it.milestones.reduce((a,m)=>a+msPct(m),0)/it.milestones.length); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso);
+  return d.toLocaleDateString(lang==='th'?'th-TH':'en-GB',{day:'2-digit',month:'short',year:'numeric'})
+       +' '+d.toLocaleTimeString(lang==='th'?'th-TH':'en-GB',{hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function T(th,en){ return lang==='th'?th:en; }
+
+function badgeFor(st){
+  const s=statusObj(st); return `<span class="badge ${s.cls}">${T(s.th,s.en)}</span>`;
+}
+function initStatus(it){
+  const ss=it.milestones.map(m=>msStatus(m));
+  if(ss.length && ss.every(s=>s==='done')) return 'done';
+  if(ss.includes('risk')) return 'risk';
+  if(ss.some(s=>s==='prog'||s==='done')) return 'prog';
+  return 'todo';
+}
+
+/* ---- i18n static text ---- */
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-th]').forEach(n=>{
+    if(n.children.length) return; // don't wipe elements that contain child nodes
+    n.textContent = lang==='th' ? n.dataset.th : n.dataset.en;
+  });
+  $('#langBtn').textContent = lang==='th' ? '🌐 EN' : '🌐 TH';
+}
+function applyTheme(){
+  document.documentElement.dataset.theme = theme==='light'?'light':'';
+  $('#themeBtn').textContent = theme==='light'?'☀️':'🌙';
+}
+
+/* ---- Render overview ---- */
+function renderOverview(){
+  let total=0,done=0,prog=0,todo=0,risk=0,sumPct=0,cnt=0;
+  data.initiatives.forEach(it=>it.milestones.forEach(m=>{
+    total++; const st=msStatus(m);
+    if(st==='done')done++; else if(st==='prog')prog++; else if(st==='risk')risk++; else todo++;
+    sumPct+=msPct(m); cnt++;
+  }));
+  const overall = cnt? Math.round(sumPct/cnt):0;
+  $('#ring').style.setProperty('--p',overall);
+  $('#ringPct').textContent = overall+'%';
+  $('#ovDone').textContent = done; $('#ovTotal').textContent = total;
+  $('#sDone').textContent=done; $('#sProg').textContent=prog; $('#sTodo').textContent=todo;
+  $('#sRisk').textContent=risk;
+  $('#lastUpd').textContent = data.updatedAt?fmtDate(data.updatedAt):'—';
+
+  const mb=$('#miniBars'); mb.innerHTML='';
+  data.initiatives.forEach((it,i)=>{
+    const p=initPct(it);
+    const row=el('div','mini');
+    row.innerHTML=`<span class="tag" style="background:${it.color}">${i+1}</span>
+      <div class="bar"><i style="width:${p}%;background:${it.color}"></i></div>
+      <span class="pct" style="color:${it.color}">${p}%</span>`;
+    row.title = T(it.titleTH,it.titleEN);
+    mb.appendChild(row);
+  });
+
+  renderSummary();
+  renderTimeline();
+}
+
+/* ---- Auto progress summary ---- */
+function renderSummary(){
+  const ins=$('#insights'); if(!ins) return;
+  let total=0,done=0,prog=0,todo=0,risk=0,sum=0;
+  data.initiatives.forEach(it=>it.milestones.forEach(m=>{
+    total++; const s=msStatus(m);
+    if(s==='done')done++; else if(s==='prog')prog++; else if(s==='risk')risk++; else todo++;
+    sum+=msPct(m);
+  }));
+  const overall=total?Math.round(sum/total):0;
+  const perInit=data.initiatives.map(it=>({it,pct:initPct(it),st:initStatus(it)}));
+  const items=[];
+
+  items.push({ic:'📈',html:T(
+    `ความคืบหน้าโดยรวม <b>${overall}%</b> — เสร็จแล้ว <b>${done}/${total}</b> งานย่อย`,
+    `Overall progress <b>${overall}%</b> — <b>${done}/${total}</b> tasks complete`)});
+  items.push({ic:'🗂️',html:T(
+    `สถานะงาน: 🟢 เสร็จ <b>${done}</b> · 🟡 กำลังทำ <b>${prog}</b> · 🔴 ล่าช้า <b>${risk}</b> · ⚪ ยังไม่เริ่ม <b>${todo}</b>`,
+    `Status: 🟢 Done <b>${done}</b> · 🟡 In progress <b>${prog}</b> · 🔴 At risk <b>${risk}</b> · ⚪ Not started <b>${todo}</b>`)});
+
+  const top=[...perInit].sort((a,b)=>b.pct-a.pct)[0];
+  if(top && top.pct>0) items.push({ic:'🏆',html:T(
+    `โครงการที่คืบหน้ามากที่สุด: <b>${esc(top.it.titleTH)}</b> (${top.pct}%)`,
+    `Most advanced initiative: <b>${esc(top.it.titleEN)}</b> (${top.pct}%)`)});
+
+  const doneInits=perInit.filter(p=>p.st==='done');
+  if(doneInits.length) items.push({ic:'✅',html:T(
+    `โครงการที่เสร็จสมบูรณ์: <b>${doneInits.map(p=>esc(p.it.titleTH)).join(', ')}</b>`,
+    `Completed initiatives: <b>${doneInits.map(p=>esc(p.it.titleEN)).join(', ')}</b>`)});
+
+  const riskMs=[];
+  data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>{
+    if(msStatus(m)==='risk') riskMs.push(`${esc(T(m.titleTH,m.titleEN))} (#${i+1})`);
+  }));
+  if(riskMs.length) items.push({ic:'⚠️',html:T(
+    `งานที่ล่าช้า/มีปัญหา ต้องเร่งแก้ไข: <b>${riskMs.join(', ')}</b>`,
+    `Delayed / at-risk tasks needing attention: <b>${riskMs.join(', ')}</b>`)});
+
+  // overdue & upcoming steps (by expected date)
+  const tdy=todayStr();
+  const overdueSteps=[], soonSteps=[];
+  data.initiatives.forEach(it=>it.milestones.forEach(m=>(m.steps||[]).forEach(s=>{
+    if(s.status==='done'||!s.due) return;
+    const dd=daysBetween(tdy,s.due);
+    if(dd<0) overdueSteps.push({s,it,dd});
+    else if(dd<=7) soonSteps.push({s,it,dd});
+  })));
+  if(overdueSteps.length){
+    overdueSteps.sort((a,b)=>a.dd-b.dd);
+    const txt=overdueSteps.slice(0,4).map(o=>`${esc(o.s.title)} (${esc(fmtDay(o.s.due))})`).join(', ');
+    items.push({ic:'⏰',html:T(
+      `ขั้นตอนที่เลยกำหนดแล้ว <b>${overdueSteps.length}</b> รายการ: ${txt}`,
+      `<b>${overdueSteps.length}</b> overdue step(s): ${txt}`)});
+  }
+  if(soonSteps.length){
+    soonSteps.sort((a,b)=>a.dd-b.dd);
+    const n=soonSteps[0];
+    items.push({ic:'📅',html:T(
+      `ขั้นตอนถัดไปที่ใกล้ครบกำหนด: <b>${esc(n.s.title)}</b> — ${esc(fmtDay(n.s.due))} (${T('อีก','in')} ${n.dd} ${T('วัน','d')})`,
+      `Next step due: <b>${esc(n.s.title)}</b> — ${esc(fmtDay(n.s.due))} (in ${n.dd} d)`)});
+  }
+
+  const behind=[...perInit].filter(p=>p.st!=='done').sort((a,b)=>a.pct-b.pct)[0];
+  if(behind && behind.pct<overall) items.push({ic:'🎯',html:T(
+    `ควรให้ความสำคัญเพิ่ม: <b>${esc(behind.it.titleTH)}</b> (คืบหน้า ${behind.pct}%)`,
+    `Needs more focus: <b>${esc(behind.it.titleEN)}</b> (${behind.pct}%)`)});
+
+  if(done+prog+risk===0) items.push({ic:'🚀',html:T(
+    'ยังไม่มีการอัปเดตความคืบหน้า — เริ่มบันทึกงานแรกได้เลย',
+    'No progress recorded yet — start updating your first task')});
+  else if(overall>=100) items.push({ic:'🎉',html:T(
+    'ทุกงานเสร็จสมบูรณ์ 100% — ยอดเยี่ยมมาก!',
+    'All tasks are 100% complete — great job!')});
+
+  ins.innerHTML = items.map(x=>`<li><span class="ic">${x.ic}</span><span>${x.html}</span></li>`).join('');
+  renderFeed();
+}
+
+/* ---- Recent activity feed ---- */
+function renderFeed(){
+  const feed=$('#feed'); if(!feed) return;
+  const all=[];
+  data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>(m.logs||[]).forEach(lg=>{
+    all.push({t:lg.t,who:lg.who,msg:lg.msg,status:lg.status,color:it.color,ms:T(m.titleTH,m.titleEN)});
+  })));
+  all.sort((a,b)=> a.t<b.t?1:a.t>b.t?-1:0);
+  const top=all.slice(0,12);
+  if(!top.length){ feed.innerHTML=`<div class="empty">${T('ยังไม่มีกิจกรรม','No activity yet')}</div>`; return; }
+  feed.innerHTML=top.map(a=>{
+    const st=a.status?statusObj(a.status):null;
+    return `<li><span class="fdot" style="background:${a.color}"></span>
+      <div class="fc">
+        <div>${st?`<span class="badge ${st.cls}" style="margin-right:6px">${T(st.th,st.en)}</span>`:''}${esc(a.msg)}</div>
+        <div class="fmeta">${esc(a.ms)} · ${fmtDate(a.t)}${a.who?' · '+esc(a.who):''}</div>
+      </div></li>`;
+  }).join('');
+}
+
+/* ---- Auto work timeline (grouped by period) ---- */
+function renderTimeline(){
+  const tl=$('#timeline'); if(!tl) return;
+  const order=[]; const map={};
+  data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>{
+    if(!map[m.when]){ map[m.when]=[]; order.push(m.when); }
+    map[m.when].push({m,color:it.color,num:i+1});
+  }));
+  tl.innerHTML = order.map(w=>{
+    const list=map[w];
+    const avg=Math.round(list.reduce((a,x)=>a+msPct(x.m),0)/list.length);
+    const dotCol = avg>=100?'var(--green)':avg>0?'var(--amber)':'var(--muted)';
+    const rows=list.map(x=>{
+      const st=statusObj(msStatus(x.m));
+      return `<div class="tl-item">
+        <span class="tnum" style="background:${x.color}">${x.num}</span>
+        <span class="tt">${esc(T(x.m.titleTH,x.m.titleEN))}</span>
+        <span class="badge ${st.cls}">${T(st.th,st.en)}</span>
+        <span class="tpct" style="color:${x.color}">${msPct(x.m)}%</span>
+      </div>`;
+    }).join('');
+    return `<div class="tl-period">
+      <span class="tl-dot" style="background:${dotCol}"></span>
+      <div class="tl-when">${esc(w)}</div>
+      <div class="tl-sub">${list.length} ${T('งาน','tasks')} · ${T('ความคืบหน้าเฉลี่ย','avg progress')} ${avg}%</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+/* ---- Render owner filter ---- */
+function renderOwnerFilter(){
+  const sel=$('#fOwner'); const cur=sel.value;
+  sel.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());
+  data.initiatives.forEach(it=>{
+    const o=el('option'); o.value=it.id; o.textContent=it.owner.split('·')[0].trim();
+    sel.appendChild(o);
+  });
+  sel.value=cur;
+}
+
+/* ---- Render cards ---- */
+function renderCards(){
+  const wrap=$('#cards');
+  const openIds = new Set([...wrap.querySelectorAll('.init.open')].map(n=>n.dataset.id));
+  wrap.innerHTML='';
+  const fOwner=$('#fOwner').value, fStatus=$('#fStatus').value;
+
+  data.initiatives.forEach((it,idx)=>{
+    if(fOwner && it.id!==fOwner) return;
+    const p=initPct(it), st=initStatus(it);
+    if(fStatus && st!==fStatus) return;
+
+    const card=el('div','init'); card.dataset.id=it.id;
+    card.style.setProperty('--accent',it.color);
+    if(openIds.has(it.id)||prefs.openAll) card.classList.add('open');
+
+    /* head */
+    const head=el('div','init-head');
+    head.innerHTML=`
+      <div class="num">${idx+1}</div>
+      <div class="init-title">
+        <h2>${esc(T(it.titleTH,it.titleEN))} ${badgeFor(st)}</h2>
+        <div class="en">${esc(it.tagEN)}</div>
+        <div class="owner">👤 <span data-th="ผู้รับผิดชอบ" data-en="Owner">${T('ผู้รับผิดชอบ','Owner')}</span>: <b>${esc(it.owner)}</b></div>
+      </div>
+      <div class="init-prog">
+        <div class="pnum">${p}%</div>
+        <div class="bar"><i style="width:${p}%;background:${it.color}"></i></div>
+      </div>
+      <div class="chev">▶</div>`;
+    head.addEventListener('click',()=>{ card.classList.toggle('open'); });
+    card.appendChild(head);
+
+    /* body */
+    const body=el('div','init-body');
+
+    // objective
+    body.appendChild(el('div','section-lbl',T('เป้าหมาย (OBJECTIVE)','Objective')));
+    body.appendChild(el('div','obj','🎯 '+esc(T(it.objTH,it.objEN))));
+
+    // KPIs
+    body.appendChild(el('div','section-lbl',T('ตัวชี้วัดหลัก (KEY KPI)','Key KPIs')));
+    const kwrap=el('div','kpis');
+    it.kpis.forEach((k,ki)=>{
+      const chip=el('div','kpi'+(k.hit?' hit':''));
+      chip.innerHTML=`<span class="dot"></span>${esc(T(k.th,k.en))}`;
+      chip.style.cursor='pointer';
+      chip.title=T('คลิกเพื่อทำเครื่องหมายว่าบรรลุแล้ว','Click to mark as achieved');
+      chip.addEventListener('click',()=>{ k.hit=!k.hit; save(); renderCards(); });
+      kwrap.appendChild(chip);
+    });
+    body.appendChild(kwrap);
+
+    // Milestones
+    body.appendChild(el('div','section-lbl',T('แผนงาน / Milestones (Timeline)','Timeline / Milestones')));
+    it.milestones.forEach(m=>{
+      const mSt=msStatus(m), mPct=msPct(m);
+      const ms=el('div','ms');
+      const mhead=el('div','ms-head');
+      mhead.innerHTML=`
+        <span class="ms-when" style="background:${it.color}">${esc(m.when)}</span>
+        <div class="ms-title"><div class="t">${esc(T(m.titleTH,m.titleEN))}</div></div>
+        <div class="ms-ctrl">
+          ${badgeFor(mSt)}
+          <span class="ms-pct" style="color:${it.color}">${mPct}%</span>
+        </div>`;
+      ms.appendChild(mhead);
+
+      const mbody=el('div','ms-body');
+      mbody.appendChild(el('div','bar',`<i style="width:${mPct}%;background:${it.color}"></i>`));
+
+      // ---- STEPS (sub-tasks with status + expected date) ----
+      mbody.appendChild(el('div','steps-title','🧩 '+T('ขั้นตอนการดำเนินงาน','Work steps')));
+      if(!(m.steps&&m.steps.length)){
+        mbody.appendChild(el('div','step-empty',T('ยังไม่มีขั้นตอน — เพิ่มขั้นตอนแรกด้านล่าง','No steps yet — add the first one below')));
+      }
+      const today=todayStr();
+      (m.steps||[]).forEach((s,si)=>{
+        const row=el('div','step');
+        let flag='';
+        if(s.status==='done'){
+          flag=`<span class="step-flag flag-done">✓ ${T('เสร็จ','done')} ${s.doneAt?esc(fmtDay(s.doneAt)):''}</span>`;
+        } else if(s.due){
+          const dd=daysBetween(today,s.due);
+          if(dd<0) flag=`<span class="step-flag flag-over">⏰ ${T('เลยกำหนด','overdue')} ${Math.abs(dd)} ${T('วัน','d')}</span>`;
+          else if(dd<=3) flag=`<span class="step-flag flag-soon">${T('ใกล้ครบกำหนด','due soon')} ${dd} ${T('วัน','d')}</span>`;
+        }
+        row.innerHTML=`
+          <select class="step-status ${stepObj(s.status).cls}" title="${T('สถานะขั้นตอน','Step status')}">
+            ${STEP_STATUS.map(o=>`<option value="${o.key}"${s.status===o.key?' selected':''}>${T(o.th,o.en)}</option>`).join('')}
+          </select>
+          <div class="step-name${s.status==='done'?' done':''}">${esc(s.title)}</div>
+          <div class="step-due">
+            <input type="date" value="${s.due||''}" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
+            ${flag}
+          </div>
+          <button class="step-del" title="${T('ลบขั้นตอน','Delete step')}">✕</button>`;
+        row.querySelector('.step-status').addEventListener('change',e=>{
+          const nv=e.target.value;
+          s.status=nv;
+          if(nv==='done'){ s.doneAt=todayStr();
+            m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
+              msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')}`,status:'done'});
+          } else { s.doneAt=null; }
+          save(); renderCards(); renderOverview();
+        });
+        row.querySelector('input[type=date]').addEventListener('change',e=>{
+          s.due=e.target.value||''; save(); renderCards(); renderOverview();
+        });
+        row.querySelector('.step-del').addEventListener('click',()=>{
+          m.steps.splice(si,1); save(); renderCards(); renderOverview();
+        });
+        mbody.appendChild(row);
+      });
+
+      // add-step form
+      const addf=el('div','step-add');
+      addf.innerHTML=`
+        <input type="text" class="st-title" placeholder="${T('ขั้นตอนถัดไป เช่น สร้างฐานข้อมูล','Next step, e.g. Build database')}">
+        <input type="date" class="st-due" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
+        <button class="btn primary st-add">＋ ${T('เพิ่มขั้นตอน','Add step')}</button>`;
+      const doAdd=()=>{
+        const title=addf.querySelector('.st-title').value.trim();
+        const due=addf.querySelector('.st-due').value;
+        if(!title){ toast(T('กรุณากรอกชื่อขั้นตอน','Please enter a step name')); return; }
+        m.steps.push({title,status:'plan',due:due||'',addedAt:todayStr(),doneAt:null});
+        m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
+          msg:`${T('เพิ่มขั้นตอน','Added step')}: ${title}${due?` (${T('กำหนดเสร็จ','due')} ${fmtDay(due)})`:''}`});
+        save(); renderCards(); renderOverview();
+      };
+      addf.querySelector('.st-add').addEventListener('click',doAdd);
+      addf.querySelector('.st-title').addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();});
+      mbody.appendChild(addf);
+
+      // ---- note log / history ----
+      mbody.appendChild(el('div','steps-title',T('บันทึก / ประวัติการอัปเดต','Notes / update history')));
+
+      // log form
+      const form=el('div','log-form');
+      form.innerHTML=`
+        <input type="text" placeholder="${T('บันทึกความคืบหน้า / หมายเหตุ...','Add a progress note...')}" class="note">
+        <input type="text" placeholder="${T('ผู้บันทึก','By')}" class="who" value="${esc(prefs.lastWho||'')}">
+        <button class="btn primary addLog">＋ ${T('บันทึก','Add')}</button>`;
+      form.querySelector('.addLog').addEventListener('click',()=>{
+        const note=form.querySelector('.note').value.trim();
+        const who=form.querySelector('.who').value.trim();
+        if(!note){ toast(T('กรุณากรอกข้อความ','Please enter a note')); return; }
+        m.logs.unshift({t:new Date().toISOString(),who,msg:note});
+        prefs.lastWho=who; savePrefs(); save();
+        renderCards(); renderOverview();
+      });
+      form.querySelector('.note').addEventListener('keydown',e=>{if(e.key==='Enter')form.querySelector('.addLog').click();});
+      mbody.appendChild(form);
+
+      // logs
+      const ul=el('ul','logs');
+      if(!m.logs.length){
+        ul.innerHTML=`<div class="empty">${T('ยังไม่มีบันทึกความคืบหน้า','No updates yet')}</div>`;
+      }
+      m.logs.forEach((lg,li)=>{
+        const item=el('li');
+        const stB = lg.status?`<span class="badge ${statusObj(lg.status).cls}" style="margin-right:7px">${T(statusObj(lg.status).th,statusObj(lg.status).en)}</span>`:'';
+        item.innerHTML=`<span class="meta">${fmtDate(lg.t)}</span>
+          <span class="msg">${stB}${lg.who?`<span class="who">${esc(lg.who)}:</span> `:''}${esc(lg.msg)}</span>
+          <button class="del" title="${T('ลบ','Delete')}">✕</button>`;
+        item.querySelector('.del').addEventListener('click',()=>{
+          m.logs.splice(li,1); save(); renderCards();
+        });
+        ul.appendChild(item);
+      });
+      mbody.appendChild(ul);
+      ms.appendChild(mbody);
+      body.appendChild(ms);
+    });
+
+    card.appendChild(body);
+    wrap.appendChild(card);
+  });
+
+}
+
+/* ---- Status modal (mandatory detail on status change) ---- */
+let pendingStatus=null;
+function openStatusModal(ctx){
+  pendingStatus=ctx;
+  const s=statusObj(ctx.newStatus);
+  $('#smTitle').textContent = T('อัปเดตสถานะงาน','Update task status');
+  $('#smSub').innerHTML = `${esc(T(ctx.m.titleTH,ctx.m.titleEN))} → <b style="color:${statusColor(ctx.newStatus)}">${T(s.th,s.en)}</b>`;
+  $('#smDetailLbl').innerHTML = T('รายละเอียด','Details')+' <span class="req">*</span>';
+  $('#smWhoLbl').textContent = T('ผู้บันทึก','Recorded by');
+  $('#smDetail').placeholder = T('อธิบายรายละเอียด/เหตุผลของการเปลี่ยนสถานะ...','Describe the reason / details for this status change...');
+  $('#smDetail').value='';
+  $('#smWho').value = prefs.lastWho||'';
+  $('#smErr').style.display='none';
+  $('#smCancel').textContent=T('ยกเลิก','Cancel');
+  $('#smSave').textContent=T('บันทึก','Save');
+  $('#statusModal').classList.add('show');
+  setTimeout(()=>$('#smDetail').focus(),50);
+}
+function closeStatusModal(revert){
+  if(revert && pendingStatus){
+    pendingStatus.sel.value = pendingStatus.oldStatus;
+    pendingStatus.sel.className = 'status-sel st-'+pendingStatus.oldStatus;
+  }
+  $('#statusModal').classList.remove('show');
+  pendingStatus=null;
+}
+function commitStatus(){
+  if(!pendingStatus) return;
+  const detail=$('#smDetail').value.trim();
+  if(!detail){ $('#smErr').textContent=T('กรุณากรอกรายละเอียดก่อนบันทึก','Please enter details before saving');
+    $('#smErr').style.display='block'; $('#smDetail').focus(); return; }
+  const {m,newStatus}=pendingStatus;
+  const who=$('#smWho').value.trim();
+  m.status=newStatus;
+  if(newStatus==='done') m.pct=100; else if(newStatus==='todo') m.pct=0;
+  m.logs.unshift({t:new Date().toISOString(),who,msg:detail,status:newStatus});
+  prefs.lastWho=who; savePrefs(); save();
+  $('#statusModal').classList.remove('show'); pendingStatus=null;
+  renderCards(); renderOverview();
+  toast(T('อัปเดตสถานะแล้ว','Status updated'));
+}
+$('#smSave').addEventListener('click',commitStatus);
+$('#smCancel').addEventListener('click',()=>closeStatusModal(true));
+$('#statusModal').addEventListener('click',e=>{ if(e.target.id==='statusModal') closeStatusModal(true); });
+document.addEventListener('keydown',e=>{
+  if(!pendingStatus) return;
+  if(e.key==='Escape') closeStatusModal(true);
+  else if(e.key==='Enter' && (e.ctrlKey||e.metaKey)) commitStatus();
+});
+
+function renderAll(){ applyTheme(); applyLang(); renderOverview(); renderOwnerFilter(); renderCards(); }
+
+/* ---- Toast ---- */
+let toastTimer;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
+
+/* ---- Toolbar actions ---- */
+$('#langBtn').addEventListener('click',()=>{ lang=lang==='th'?'en':'th'; savePrefs(); renderAll(); });
+$('#themeBtn').addEventListener('click',()=>{ theme=theme==='light'?'dark':'light'; savePrefs(); applyTheme(); });
+$('#printBtn').addEventListener('click',()=>window.print());
+$('#segSum').addEventListener('click',()=>{
+  $('#segSum').classList.add('active'); $('#segTl').classList.remove('active');
+  $('#viewSummary').classList.add('active'); $('#viewTimeline').classList.remove('active');
+});
+$('#segTl').addEventListener('click',()=>{
+  $('#segTl').classList.add('active'); $('#segSum').classList.remove('active');
+  $('#viewTimeline').classList.add('active'); $('#viewSummary').classList.remove('active');
+});
+$('#fOwner').addEventListener('change',renderCards);
+$('#fStatus').addEventListener('change',renderCards);
+$('#expandAll').addEventListener('click',()=>{ prefs.openAll=true; document.querySelectorAll('.init').forEach(c=>c.classList.add('open')); });
+$('#collapseAll').addEventListener('click',()=>{ prefs.openAll=false; document.querySelectorAll('.init').forEach(c=>c.classList.remove('open')); });
+
+$('#exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=el('a'); a.href=URL.createObjectURL(blob);
+  const d=new Date(); const stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  a.download=`HR2026-progress-${stamp}.json`; a.click();
+  toast(T('ส่งออกข้อมูลแล้ว','Data exported'));
+});
+$('#importBtn').addEventListener('click',()=>$('#importFile').click());
+$('#importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+      const obj=JSON.parse(rd.result);
+      if(!obj.initiatives) throw 0;
+      data=migrate(obj); save(); renderAll();
+      toast(T('นำเข้าข้อมูลสำเร็จ','Data imported'));
+    }catch(err){ toast(T('ไฟล์ไม่ถูกต้อง','Invalid file')); }
+    e.target.value='';
+  };
+  rd.readAsText(f);
+});
+$('#resetBtn').addEventListener('click',()=>{
+  if(confirm(T('ต้องการล้างข้อมูลทั้งหมดและเริ่มใหม่หรือไม่?\n(ควรส่งออกสำรองก่อน)',
+              'Reset all data to the original plan?\n(Export a backup first.)'))){
+    data=freshData(); save(); renderAll();
+    toast(T('รีเซ็ตเรียบร้อย','Reset done'));
+  }
+});
+
+/* ---- Init ---- */
+renderAll();
+</script>
+</body>
+</html>
