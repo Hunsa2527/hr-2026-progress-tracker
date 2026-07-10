@@ -99,6 +99,12 @@
 
   /* ---------- Initiative cards ---------- */
   .cards{display:flex;flex-direction:column;gap:16px}
+  .add-init{width:100%;margin-top:16px;justify-content:center;padding:13px;border-style:dashed;
+    border-color:var(--line2);font-size:14px;font-weight:700;background:transparent}
+  .add-init:hover{border-color:var(--gold);color:var(--gold2);background:rgba(240,180,41,.06)}
+  .init-del-wrap{margin-top:12px;text-align:right}
+  .init-del{font-size:12px;color:var(--muted2)}
+  .init-del:hover{color:var(--red);border-color:var(--red)}
   .init{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     box-shadow:var(--shadow);overflow:hidden;border-left:5px solid var(--accent)}
   .init-head{display:flex;gap:16px;align-items:center;padding:16px 18px;cursor:pointer;user-select:none}
@@ -446,6 +452,8 @@
 
   <!-- CARDS -->
   <div class="cards" id="cards"></div>
+
+  <button class="btn add-init" id="addInitBtn">＋ <span data-th="เพิ่มกลุ่มงานใหม่" data-en="Add new group">เพิ่มกลุ่มงานใหม่</span></button>
 
   <footer>
     <span data-th="ระบบบันทึกความคืบหน้างาน · ข้อมูลบันทึกอัตโนมัติในเครื่องของคุณ (LocalStorage)"
@@ -1199,6 +1207,19 @@ function renderCards(){
     addMs.querySelector('.mnew-title').addEventListener('keydown',e=>{if(e.key==='Enter')doAddMs();});
     body.appendChild(addMs);
 
+    // delete this whole group
+    const delW=el('div','init-del-wrap');
+    delW.innerHTML=`<button class="btn ghost init-del">🗑️ ${T('ลบกลุ่มงานนี้','Delete this group')}</button>`;
+    delW.querySelector('.init-del').addEventListener('click',()=>{
+      if(confirm(T(`ลบกลุ่ม "${T(it.titleTH,it.titleEN)}" และงานทั้งหมดในกลุ่มนี้?`,
+                   `Delete group "${T(it.titleTH,it.titleEN)}" and all its items?`))){
+        const idx=data.initiatives.findIndex(x=>x.id===it.id);
+        if(idx>-1) data.initiatives.splice(idx,1);
+        save(); renderAll(); toast(T('ลบกลุ่มแล้ว','Group deleted'));
+      }
+    });
+    body.appendChild(delW);
+
     card.appendChild(body);
     wrap.appendChild(card);
   });
@@ -1276,6 +1297,18 @@ $('#segSteps').addEventListener('click',()=>showView('steps'));
 $('#segTl').addEventListener('click',()=>showView('tl'));
 $('#fOwner').addEventListener('change',renderCards);
 $('#fStatus').addEventListener('change',renderCards);
+
+const INIT_COLORS=['#e8a13a','#2b6cff','#12a37a','#7b5cff','#0f7ac2','#e8590c','#c2255c','#0ca678','#4263eb','#f08c00'];
+$('#addInitBtn').addEventListener('click',()=>{
+  const col=INIT_COLORS[data.initiatives.length % INIT_COLORS.length];
+  data.initiatives.push({id:'i'+Date.now(),color:col,
+    titleTH:'กลุ่มงานใหม่',titleEN:'New group',tagEN:'',owner:'',objTH:'',objEN:'',kpis:[],milestones:[]});
+  save(); renderAll();
+  const cards=document.querySelectorAll('.init'); const last=cards[cards.length-1];
+  if(last){ last.classList.add('open'); last.scrollIntoView({block:'center'});
+    const t=last.querySelector('.init-title-edit'); if(t){ t.focus(); t.select(); } }
+  toast(T('เพิ่มกลุ่มงานใหม่ — คลิกที่ชื่อเพื่อแก้','New group added — click the name to rename'));
+});
 $('#expandAll').addEventListener('click',()=>{ prefs.openAll=true; document.querySelectorAll('.init').forEach(c=>c.classList.add('open')); });
 $('#collapseAll').addEventListener('click',()=>{ prefs.openAll=false; document.querySelectorAll('.init').forEach(c=>c.classList.remove('open')); });
 
