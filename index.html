@@ -260,21 +260,20 @@
   .feed .fproj{font-size:11.5px;font-weight:800;margin-bottom:2px}
   .feed .fmeta{color:var(--muted2);font-size:11px;margin-top:3px}
 
-  .tl{display:flex;flex-direction:column}
-  .tl-period{position:relative;padding:0 0 4px 28px;margin-bottom:16px}
-  .tl-period::before{content:"";position:absolute;left:8px;top:22px;bottom:-14px;width:2px;background:var(--line)}
-  .tl-period:last-child::before{display:none}
-  .tl-dot{position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;
-    border:3px solid var(--card);z-index:1}
-  .tl-when{font-weight:800;font-size:14.5px;margin-bottom:2px}
-  .tl-sub{font-size:11.5px;color:var(--muted2);margin-bottom:10px}
+  .tl{display:flex;flex-direction:column;gap:14px}
+  .tl-proj{border:1px solid var(--line);border-radius:12px;overflow:hidden;border-left:4px solid var(--accent)}
+  .tl-proj-head{display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--card2);flex-wrap:wrap}
+  .tl-proj-head .num{width:26px;height:26px;border-radius:8px;color:#fff;font-weight:800;font-size:13px;
+    display:grid;place-items:center;flex:0 0 auto;background:var(--accent)}
+  .tl-proj-head .nm{font-weight:800;font-size:14.5px;flex:1;min-width:120px}
+  .tl-proj-head .pc{font-weight:800;font-size:12.5px;color:var(--accent);white-space:nowrap}
+  .tl-proj-body{padding:10px 14px 4px}
   .tl-item{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);
     border-radius:10px;padding:9px 12px;margin-bottom:7px;flex-wrap:wrap}
-  .tl-item .tnum{width:22px;height:22px;border-radius:6px;color:#fff;font-weight:800;font-size:11px;
-    display:grid;place-items:center;flex:0 0 auto}
-  .tl-item .tt{flex:1;min-width:150px;display:flex;flex-direction:column;gap:1px}
+  .tl-when2{font-size:10px;font-weight:800;color:#fff;padding:3px 8px;border-radius:6px;white-space:nowrap;
+    flex:0 0 auto;min-width:78px;text-align:center}
+  .tl-item .tt{flex:1;min-width:150px}
   .tl-item .tt-title{font-size:13.5px;font-weight:700}
-  .tl-item .tt-proj{font-size:11px;font-weight:700}
   .tl-item .tpct{font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
 
   /* step breakdown */
@@ -835,35 +834,25 @@ function renderFeed(){
   }).join('');
 }
 
-/* ---- Auto work timeline (grouped by period) ---- */
+/* ---- Auto work timeline (grouped by initiative, ordered by period) ---- */
 function renderTimeline(){
   const tl=$('#timeline'); if(!tl) return;
-  const order=[]; const map={};
-  data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>{
-    if(!map[m.when]){ map[m.when]=[]; order.push(m.when); }
-    map[m.when].push({m,color:it.color,num:i+1,name:T(it.titleTH,it.titleEN)});
-  }));
-  tl.innerHTML = order.map(w=>{
-    const list=map[w];
-    const avg=Math.round(list.reduce((a,x)=>a+msPct(x.m),0)/list.length);
-    const dotCol = avg>=100?'var(--green)':avg>0?'var(--amber)':'var(--muted)';
-    const rows=list.map(x=>{
-      const st=statusObj(msStatus(x.m));
+  tl.innerHTML = data.initiatives.map((it,i)=>{
+    const rows=it.milestones.map(m=>{
+      const st=statusObj(msStatus(m));
       return `<div class="tl-item">
-        <span class="tnum" style="background:${x.color}">${x.num}</span>
-        <div class="tt">
-          <div class="tt-title">${esc(T(x.m.titleTH,x.m.titleEN))}</div>
-          <div class="tt-proj" style="color:${x.color}">${T('โครงการ','Initiative')} ${x.num}: ${esc(x.name)}</div>
-        </div>
+        <span class="tl-when2" style="background:${it.color}">${esc(m.when)}</span>
+        <div class="tt"><div class="tt-title">${esc(T(m.titleTH,m.titleEN))}</div></div>
         <span class="badge ${st.cls}">${T(st.th,st.en)}</span>
-        <span class="tpct" style="color:${x.color}">${msPct(x.m)}%</span>
+        <span class="tpct" style="color:${it.color}">${msPct(m)}%</span>
       </div>`;
-    }).join('');
-    return `<div class="tl-period">
-      <span class="tl-dot" style="background:${dotCol}"></span>
-      <div class="tl-when">${esc(w)}</div>
-      <div class="tl-sub">${list.length} ${T('งาน','tasks')} · ${T('ความคืบหน้าเฉลี่ย','avg progress')} ${avg}%</div>
-      ${rows}
+    }).join('') || `<div class="sb-empty">${T('ยังไม่มีงานย่อย','No work items yet')}</div>`;
+    const doneCount=it.milestones.filter(m=>msStatus(m)==='done').length;
+    return `<div class="tl-proj" style="--accent:${it.color}">
+      <div class="tl-proj-head"><span class="num">${i+1}</span>
+        <span class="nm">${esc(T(it.titleTH,it.titleEN))}</span>
+        <span class="pc">${T('เสร็จ','done')} ${doneCount}/${it.milestones.length} · ${initPct(it)}%</span></div>
+      <div class="tl-proj-body">${rows}</div>
     </div>`;
   }).join('');
 }
