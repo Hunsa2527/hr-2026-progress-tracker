@@ -262,25 +262,38 @@
 
   .gantt-hint{font-size:11.5px;color:var(--muted2);margin-bottom:10px}
   .gantt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
-  .gantt{border-collapse:separate;border-spacing:0;width:100%;min-width:680px;font-size:12px}
-  .gantt th,.gantt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:8px;vertical-align:top}
-  .gantt th:last-child,.gantt td:last-child{border-right:none}
-  .gantt tbody tr:last-child td{border-bottom:none}
-  .gantt thead th{position:sticky;top:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;
-    color:var(--muted2);background:var(--card2);text-align:center;font-weight:800;white-space:nowrap;z-index:1}
-  .gantt .proj-col{position:sticky;left:0;background:var(--card);min-width:180px;max-width:210px;text-align:left;z-index:2}
-  .gantt thead .proj-col{background:var(--card2);z-index:3}
-  .g-projname{font-weight:800;font-size:12.5px;display:flex;align-items:center;gap:7px}
-  .g-projname .num{width:22px;height:22px;border-radius:6px;color:#fff;font-weight:800;font-size:11px;
+  .g2{min-width:100%;width:max-content}
+  .g2-row{display:flex;align-items:stretch;border-bottom:1px solid var(--line);min-height:40px}
+  .g2-row:last-child{border-bottom:none}
+  .g2-label{width:186px;flex:0 0 auto;padding:7px 11px;font-size:12.5px;font-weight:600;display:flex;
+    align-items:center;border-right:1px solid var(--line);background:var(--card);position:sticky;left:0;z-index:2}
+  .g2-track{position:relative;flex:1}
+  .g2-grid{position:absolute;inset:0;display:flex}
+  .g2-grid > span{flex:1;border-right:1px solid var(--line)}
+  .g2-grid > span:last-child{border-right:none}
+  .g2-head{background:var(--card2);position:sticky;top:0;z-index:3}
+  .g2-head .g2-label{background:var(--card2);font-weight:800;font-size:11px;text-transform:uppercase;
+    letter-spacing:.4px;color:var(--muted2);z-index:4}
+  .g2-hgrid > span{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;
+    text-transform:uppercase;color:var(--muted2)}
+  .g2-proj{display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--card2);
+    border-bottom:1px solid var(--line);position:sticky;left:0}
+  .g2-proj .num{width:22px;height:22px;border-radius:6px;color:#fff;font-weight:800;font-size:11px;
     display:grid;place-items:center;flex:0 0 auto}
-  .g-projpct{font-size:11px;color:var(--muted2);margin-left:29px;margin-top:2px}
-  .g-bar{border-radius:7px;padding:6px 9px;margin-bottom:5px;font-weight:600;border:1px solid transparent;min-width:120px}
-  .g-bar:last-child{margin-bottom:0}
-  .g-bar .gp{font-weight:800;font-variant-numeric:tabular-nums;float:right;margin-left:8px}
-  .gb-done{background:rgba(34,197,139,.16);color:var(--green);border-color:rgba(34,197,139,.35)}
-  .gb-prog{background:rgba(255,176,32,.16);color:var(--amber);border-color:rgba(255,176,32,.35)}
-  .gb-risk{background:rgba(255,93,108,.16);color:var(--red);border-color:rgba(255,93,108,.35)}
-  .gb-todo{background:var(--card2);color:var(--muted);border-color:var(--line)}
+  .g2-proj .pnm{font-weight:800;font-size:12.5px}
+  .g2-proj .ppc{font-size:11px;color:var(--muted2);font-weight:700}
+  .g2-bar{position:absolute;top:6px;bottom:6px;border-radius:6px;overflow:hidden;display:flex;
+    align-items:center;border:1px solid;min-width:12px}
+  .g2-barfill{position:absolute;left:0;top:0;bottom:0}
+  .g2-barlbl{position:relative;z-index:1;font-size:10.5px;font-weight:800;padding:0 7px;white-space:nowrap}
+  .gb-done{background:rgba(34,197,139,.14);border-color:rgba(34,197,139,.55);color:var(--green)}
+  .gb-done .g2-barfill{background:rgba(34,197,139,.34)}
+  .gb-prog{background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.55);color:var(--amber)}
+  .gb-prog .g2-barfill{background:rgba(255,176,32,.34)}
+  .gb-risk{background:rgba(255,93,108,.14);border-color:rgba(255,93,108,.55);color:var(--red)}
+  .gb-risk .g2-barfill{background:rgba(255,93,108,.34)}
+  .gb-todo{background:var(--card2);border-color:var(--line2);color:var(--muted)}
+  .gb-todo .g2-barfill{background:rgba(140,160,190,.16)}
 
   /* step breakdown */
   .sbwrap{display:flex;flex-direction:column;gap:14px}
@@ -575,6 +588,18 @@ function fmtDay(ds){ if(!ds) return '—'; const d=new Date(ds+'T00:00:00');
   return d.toLocaleDateString(lang==='th'?'th-TH':'en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
 function daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
 
+/* ---- Gantt month helpers (timeline anchored to July 2026) ---- */
+const GANTT_START_Y=2026, GANTT_START_M=7; // ก.ค. 2026
+const THMON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const ENMON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthIdx(ds){ if(!ds) return null; const p=String(ds).split('-'); if(p.length<2) return null;
+  const y=+p[0], m=+p[1]; if(!y||!m) return null; return (y-GANTT_START_Y)*12 + (m-GANTT_START_M); }
+function monthLabel(idx){ let m=GANTT_START_M+idx, y=GANTT_START_Y; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;}
+  const yr = lang==='th' ? String((y+543)%100).padStart(2,'0') : String(y%100).padStart(2,'0');
+  return (lang==='th'?THMON:ENMON)[m-1]+' '+yr; }
+function msEndIdx(m){ let e=0; (m.steps||[]).forEach(s=>[s.due,s.doneAt].forEach(d=>{
+  const k=monthIdx(d); if(k!=null && k>e) e=k; })); return e; }
+
 /* ---- Milestone progress derived from its steps ---- */
 function stepStats(m){
   const steps=m.steps||[];
@@ -847,38 +872,50 @@ function renderFeed(){
   }).join('');
 }
 
-/* ---- Work timeline as a Gantt grid: rows = initiatives, columns = shared time periods ---- */
+/* ---- Work timeline as a date-based Gantt: every task starts Jul 2026,
+       bar length follows the recorded step dates, fill = % complete ---- */
 function renderTimeline(){
   const tl=$('#timeline'); if(!tl) return;
   const BAR={done:'gb-done',prog:'gb-prog',risk:'gb-risk',todo:'gb-todo'};
-  // shared time axis — unique periods in first-seen order
-  const periods=[];
-  data.initiatives.forEach(it=>it.milestones.forEach(m=>{ if(!periods.includes(m.when)) periods.push(m.when); }));
+  // number of month columns: at least Jul→Sep (3), extended to the latest recorded date
+  let maxIdx=2;
+  data.initiatives.forEach(it=>it.milestones.forEach(m=>{ maxIdx=Math.max(maxIdx, msEndIdx(m)); }));
+  const N=maxIdx+1;
+  const MINCOL=78; // px per month column (enables horizontal scroll when many months)
+  const gridCols = `<div class="g2-grid">${Array.from({length:N},()=>'<span></span>').join('')}</div>`;
+  const headCols = `<div class="g2-grid g2-hgrid">${Array.from({length:N},(_,i)=>`<span>${monthLabel(i)}</span>`).join('')}</div>`;
 
-  const head = `<tr><th class="proj-col">${T('โครงการ \\ ช่วงเวลา','Initiative \\ Period')}</th>`
-    + periods.map(p=>`<th>${esc(p)}</th>`).join('') + `</tr>`;
+  let rows='';
+  data.initiatives.forEach((it,i)=>{
+    rows += `<div class="g2-proj" style="--accent:${it.color}">
+      <span class="num" style="background:${it.color}">${i+1}</span>
+      <span class="pnm">${esc(T(it.titleTH,it.titleEN))}</span>
+      <span class="ppc">${initPct(it)}%</span></div>`;
+    it.milestones.forEach(m=>{
+      const endIdx=msEndIdx(m);
+      const width=(endIdx+1)/N*100;
+      const pct=msPct(m), stCls=BAR[msStatus(m)]||'gb-todo';
+      const range = endIdx>0 ? `${monthLabel(0)} – ${monthLabel(endIdx)}` : monthLabel(0);
+      rows += `<div class="g2-row">
+        <div class="g2-label" title="${esc(T(m.titleTH,m.titleEN))}">${esc(T(m.titleTH,m.titleEN))}</div>
+        <div class="g2-track" style="min-width:${N*MINCOL}px">
+          ${gridCols}
+          <div class="g2-bar ${stCls}" style="left:0;width:${width}%" title="${esc(T(m.titleTH,m.titleEN))} · ${range} · ${pct}%">
+            <div class="g2-barfill" style="width:${pct}%"></div>
+            <span class="g2-barlbl">${pct}%</span>
+          </div>
+        </div>
+      </div>`;
+    });
+  });
 
-  const body = data.initiatives.map((it,i)=>{
-    const cells = periods.map(p=>{
-      const ms=it.milestones.filter(m=>m.when===p);
-      if(!ms.length) return `<td></td>`;
-      const bars=ms.map(m=>{
-        const cls=BAR[msStatus(m)]||'gb-todo';
-        return `<div class="g-bar ${cls}" title="${esc(T(m.titleTH,m.titleEN))}">`
-          +`${esc(T(m.titleTH,m.titleEN))}<span class="gp">${msPct(m)}%</span></div>`;
-      }).join('');
-      return `<td>${bars}</td>`;
-    }).join('');
-    return `<tr>
-      <td class="proj-col">
-        <div class="g-projname"><span class="num" style="background:${it.color}">${i+1}</span>${esc(T(it.titleTH,it.titleEN))}</div>
-        <div class="g-projpct">${initPct(it)}%</div>
-      </td>${cells}
-    </tr>`;
-  }).join('');
-
-  tl.innerHTML = `<div class="gantt-hint">${T('งานที่อยู่คอลัมน์เดียวกัน = เริ่มในช่วงเวลาเดียวกัน','Items in the same column start in the same period')}</div>`
-    + `<div class="gantt-scroll"><table class="gantt"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  tl.innerHTML = `<div class="gantt-hint">${T('ทุกงานเริ่ม ก.ค. 69 · ความยาวแถบ = ตามวันที่ที่บันทึกในขั้นตอน · ส่วนทึบ = % ที่ทำเสร็จ',
+      'All tasks start Jul 2026 · bar length follows the dates recorded in steps · filled part = % complete')}</div>
+    <div class="gantt-scroll"><div class="g2">
+      <div class="g2-row g2-head"><div class="g2-label">${T('งาน','Task')}</div>
+        <div class="g2-track" style="min-width:${N*MINCOL}px">${headCols}</div></div>
+      ${rows}
+    </div></div>`;
 }
 
 /* ---- Render owner filter ---- */
