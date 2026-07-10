@@ -592,8 +592,9 @@ function daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a
 const GANTT_START_Y=2026, GANTT_START_M=7; // ก.ค. 2026
 const THMON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const ENMON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function validYear(ds){ const y=+String(ds).split('-')[0]; return y>=2000 && y<=2100; }
 function monthIdx(ds){ if(!ds) return null; const p=String(ds).split('-'); if(p.length<2) return null;
-  const y=+p[0], m=+p[1]; if(!y||!m) return null; return (y-GANTT_START_Y)*12 + (m-GANTT_START_M); }
+  const y=+p[0], m=+p[1]; if(!y||!m||y<2000) return null; return (y-GANTT_START_Y)*12 + (m-GANTT_START_M); }
 function monthLabel(idx){ let m=GANTT_START_M+idx, y=GANTT_START_Y; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;}
   const yr = lang==='th' ? String((y+543)%100).padStart(2,'0') : String(y%100).padStart(2,'0');
   return (lang==='th'?THMON:ENMON)[m-1]+' '+yr; }
@@ -641,6 +642,10 @@ function migrate(d){
     if(!m.status) m.status = m.pct>=100?'done':m.pct>0?'prog':'todo';
     if(!Array.isArray(m.logs)) m.logs=[];
     if(!Array.isArray(m.steps)) m.steps=[];
+    m.steps.forEach(s=>{               // drop clearly-invalid dates (e.g. year 0002 typos)
+      if(s.due && !validYear(s.due)) s.due='';
+      if(s.doneAt && !validYear(s.doneAt)) s.doneAt=null;
+    });
   }));
   // one-time: promote "Dashboard ประเมินค่างาน" (m4e) from ongoing to a main SEP task
   if(!d._fixEval){
@@ -1027,12 +1032,12 @@ function renderCards(){
           <div class="step-name${s.status==='done'?' done':''}">${esc(s.title)}</div>
           <div class="step-datewrap">
             <label>${T('กำหนดเสร็จ','Due')}</label>
-            <input type="date" class="due" value="${s.due||''}" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
+            <input type="date" class="due" min="2000-01-01" max="2100-12-31" value="${s.due||''}" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
             ${flag}
           </div>
           <div class="step-datewrap${s.status==='done'?' done':''}">
             <label>${T('วันที่เสร็จ','Done')}</label>
-            <input type="date" class="doneat" value="${s.doneAt||''}" title="${T('วันที่ทำเสร็จจริง','Actual completion date')}">
+            <input type="date" class="doneat" min="2000-01-01" max="2100-12-31" value="${s.doneAt||''}" title="${T('วันที่ทำเสร็จจริง','Actual completion date')}">
           </div>
           <button class="step-del" title="${T('ลบขั้นตอน','Delete step')}">✕</button>`;
         row.querySelector('.step-status').addEventListener('change',e=>{
@@ -1045,10 +1050,13 @@ function renderCards(){
           save(); renderCards(); renderOverview();
         });
         row.querySelector('.due').addEventListener('change',e=>{
-          s.due=e.target.value||''; save(); renderCards(); renderOverview();
+          const v=e.target.value||'';
+          if(v && !validYear(v)){ toast(T('ปีไม่ถูกต้อง — ใส่ปี ค.ศ. เต็ม เช่น 2026','Invalid year — use a full year like 2026')); renderCards(); return; }
+          s.due=v; save(); renderCards(); renderOverview();
         });
         row.querySelector('.doneat').addEventListener('change',e=>{
           const v=e.target.value||'';
+          if(v && !validYear(v)){ toast(T('ปีไม่ถูกต้อง — ใส่ปี ค.ศ. เต็ม เช่น 2026','Invalid year — use a full year like 2026')); renderCards(); return; }
           s.doneAt=v||null;
           if(v && s.status!=='done'){ s.status='done';
             m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
@@ -1070,13 +1078,14 @@ function renderCards(){
         <div><span class="lbl">${T('สถานะ','Status')}</span>
           <select class="st-status">${STEP_STATUS.map(o=>`<option value="${o.key}">${T(o.th,o.en)}</option>`).join('')}</select></div>
         <div><span class="lbl">${T('กำหนดเสร็จ','Due date')}</span>
-          <input type="date" class="st-due" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}"></div>
+          <input type="date" class="st-due" min="2000-01-01" max="2100-12-31" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}"></div>
         <button class="btn primary st-add">＋ ${T('เพิ่มขั้นตอน','Add step')}</button>`;
       const doAdd=()=>{
         const title=addf.querySelector('.st-title').value.trim();
         const due=addf.querySelector('.st-due').value;
         const status=addf.querySelector('.st-status').value;
         if(!title){ toast(T('กรุณากรอกชื่อขั้นตอน','Please enter a step name')); return; }
+        if(due && !validYear(due)){ toast(T('ปีไม่ถูกต้อง — ใส่ปี ค.ศ. เต็ม เช่น 2026','Invalid year — use a full year like 2026')); return; }
         m.steps.push({title,status,due:due||'',addedAt:todayStr(),doneAt: status==='done'?todayStr():null});
         m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
           msg:`${T('เพิ่มขั้นตอน','Added step')}: ${title}${due?` (${T('กำหนดเสร็จ','due')} ${fmtDay(due)})`:''}`});
