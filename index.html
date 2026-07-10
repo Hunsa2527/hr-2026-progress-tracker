@@ -257,6 +257,7 @@
   .feed .fdot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;margin-top:3px;position:relative;z-index:1}
   .feed li:not(:last-child)::before{content:"";position:absolute;left:5px;top:11px;bottom:-3px;width:2px;background:var(--line)}
   .feed .fc{font-size:12.5px}
+  .feed .fproj{font-size:11.5px;font-weight:800;margin-bottom:2px}
   .feed .fmeta{color:var(--muted2);font-size:11px;margin-top:3px}
 
   .tl{display:flex;flex-direction:column}
@@ -271,7 +272,9 @@
     border-radius:10px;padding:9px 12px;margin-bottom:7px;flex-wrap:wrap}
   .tl-item .tnum{width:22px;height:22px;border-radius:6px;color:#fff;font-weight:800;font-size:11px;
     display:grid;place-items:center;flex:0 0 auto}
-  .tl-item .tt{flex:1;min-width:140px;font-size:13.5px;font-weight:600}
+  .tl-item .tt{flex:1;min-width:150px;display:flex;flex-direction:column;gap:1px}
+  .tl-item .tt-title{font-size:13.5px;font-weight:700}
+  .tl-item .tt-proj{font-size:11px;font-weight:700}
   .tl-item .tpct{font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
 
   /* step breakdown */
@@ -815,7 +818,8 @@ function renderFeed(){
   const feed=$('#feed'); if(!feed) return;
   const all=[];
   data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>(m.logs||[]).forEach(lg=>{
-    all.push({t:lg.t,who:lg.who,msg:lg.msg,status:lg.status,color:it.color,ms:T(m.titleTH,m.titleEN)});
+    all.push({t:lg.t,who:lg.who,msg:lg.msg,status:lg.status,color:it.color,
+      ms:T(m.titleTH,m.titleEN), init:T(it.titleTH,it.titleEN), initNum:i+1});
   })));
   all.sort((a,b)=> a.t<b.t?1:a.t>b.t?-1:0);
   const top=all.slice(0,12);
@@ -824,8 +828,9 @@ function renderFeed(){
     const st=a.status?statusObj(a.status):null;
     return `<li><span class="fdot" style="background:${a.color}"></span>
       <div class="fc">
+        <div class="fproj" style="color:${a.color}">${a.initNum}. ${esc(a.init)}</div>
         <div>${st?`<span class="badge ${st.cls}" style="margin-right:6px">${T(st.th,st.en)}</span>`:''}${esc(a.msg)}</div>
-        <div class="fmeta">${esc(a.ms)} · ${fmtDate(a.t)}${a.who?' · '+esc(a.who):''}</div>
+        <div class="fmeta">📍 ${esc(a.ms)} · ${fmtDate(a.t)}${a.who?' · '+esc(a.who):''}</div>
       </div></li>`;
   }).join('');
 }
@@ -836,7 +841,7 @@ function renderTimeline(){
   const order=[]; const map={};
   data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>{
     if(!map[m.when]){ map[m.when]=[]; order.push(m.when); }
-    map[m.when].push({m,color:it.color,num:i+1});
+    map[m.when].push({m,color:it.color,num:i+1,name:T(it.titleTH,it.titleEN)});
   }));
   tl.innerHTML = order.map(w=>{
     const list=map[w];
@@ -846,7 +851,10 @@ function renderTimeline(){
       const st=statusObj(msStatus(x.m));
       return `<div class="tl-item">
         <span class="tnum" style="background:${x.color}">${x.num}</span>
-        <span class="tt">${esc(T(x.m.titleTH,x.m.titleEN))}</span>
+        <div class="tt">
+          <div class="tt-title">${esc(T(x.m.titleTH,x.m.titleEN))}</div>
+          <div class="tt-proj" style="color:${x.color}">${T('โครงการ','Initiative')} ${x.num}: ${esc(x.name)}</div>
+        </div>
         <span class="badge ${st.cls}">${T(st.th,st.en)}</span>
         <span class="tpct" style="color:${x.color}">${msPct(x.m)}%</span>
       </div>`;
