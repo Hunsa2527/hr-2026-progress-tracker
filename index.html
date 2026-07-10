@@ -527,7 +527,7 @@ const SEED = {
         {id:'m4b',when:'ส.ค. · AUG',titleTH:'Turnover Dashboard',titleEN:'Turnover Dashboard',pct:0,logs:[]},
         {id:'m4c',when:'ก.ย. · SEP',titleTH:'Attendance Dashboard',titleEN:'Attendance Dashboard',pct:0,logs:[]},
         {id:'m4d',when:'ต่อเนื่อง · ONGOING',titleTH:'Employee Chatbot',titleEN:'Employee Chatbot',pct:0,logs:[]},
-        {id:'m4e',when:'ต่อเนื่อง · ONGOING',titleTH:'Dashboard ประเมินค่างาน',titleEN:'Job Evaluation Dashboard',pct:0,logs:[]}
+        {id:'m4e',when:'ก.ย. · SEP',titleTH:'Dashboard ประเมินค่างาน',titleEN:'Job Evaluation Dashboard',pct:0,logs:[]}
       ]
     },
     {
@@ -617,6 +617,13 @@ function migrate(d){
     if(!Array.isArray(m.logs)) m.logs=[];
     if(!Array.isArray(m.steps)) m.steps=[];
   }));
+  // one-time: promote "Dashboard ประเมินค่างาน" (m4e) from ongoing to a main SEP task
+  if(!d._fixEval){
+    d.initiatives.forEach(it=>(it.milestones||[]).forEach(m=>{
+      if(m.id==='m4e' && /ต่อเนื่อง|ONGOING/i.test(m.when||'')) m.when='ก.ย. · SEP';
+    }));
+    d._fixEval=true;
+  }
   return d;
 }
 function freshData(){ return migrate(structuredClone(SEED)); }
