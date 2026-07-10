@@ -190,9 +190,11 @@
   /* ---------- Steps (per milestone) ---------- */
   .steps-title{font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;
     letter-spacing:.5px;margin:12px 0 8px}
-  .step{display:grid;grid-template-columns:130px 1fr 150px auto;gap:10px;align-items:center;
-    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:7px}
-  @media(max-width:720px){.step{grid-template-columns:1fr 1fr;gap:8px}}
+  .step{display:grid;grid-template-columns:26px 116px 1fr 130px 130px 22px;gap:9px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:7px}
+  @media(max-width:820px){.step{grid-template-columns:26px 1fr 1fr;gap:8px}}
+  .step-seq{width:24px;height:24px;border-radius:50%;background:var(--card2);border:1px solid var(--line2);
+    display:grid;place-items:center;font-size:11.5px;font-weight:800;color:var(--muted)}
   .step-status{font-weight:700;border-radius:8px;padding:6px 8px;font-size:12px;
     border:1.5px solid var(--line2);cursor:pointer;background:var(--card2)}
   .step-status.ss-plan{color:var(--muted);border-color:var(--line2)}
@@ -201,17 +203,22 @@
   .step-status.ss-delay{color:var(--red);border-color:rgba(255,93,108,.55)}
   .step-name{font-size:13.5px;font-weight:600;min-width:0;word-break:break-word}
   .step-name.done{text-decoration:line-through;color:var(--muted)}
-  .step-due{display:flex;flex-direction:column;gap:2px;font-size:11px}
-  .step-due input[type=date]{padding:5px 8px;font-size:12px}
-  .step-flag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;width:fit-content}
+  .step-datewrap{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .step-datewrap label{font-size:9.5px;font-weight:700;letter-spacing:.3px;color:var(--muted2);text-transform:uppercase}
+  .step-datewrap input[type=date]{padding:5px 7px;font-size:12px;width:100%}
+  .step-datewrap.done input[type=date]{border-color:rgba(34,197,139,.5);color:var(--green)}
+  .step-flag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;width:fit-content;margin-top:1px}
   .flag-over{background:rgba(255,93,108,.16);color:var(--red)}
   .flag-soon{background:rgba(255,176,32,.16);color:var(--amber)}
-  .flag-done{background:rgba(34,197,139,.16);color:var(--green)}
   .step-del{color:var(--muted2);cursor:pointer;border:none;background:none;font-size:15px;justify-self:end}
   .step-del:hover{color:var(--red)}
   .step-add{display:grid;grid-template-columns:1fr 160px auto;gap:9px;align-items:center;margin:4px 0 6px}
   @media(max-width:720px){.step-add{grid-template-columns:1fr}}
   .step-add input[type=text],.step-add input[type=date]{width:100%}
+  .step-head{display:grid;grid-template-columns:26px 116px 1fr 130px 130px 22px;gap:9px;
+    font-size:9.5px;font-weight:700;letter-spacing:.3px;color:var(--muted2);text-transform:uppercase;
+    padding:0 11px 4px;margin-top:2px}
+  @media(max-width:820px){.step-head{display:none}}
   .step-empty{color:var(--muted2);font-size:12.5px;font-style:italic;padding:2px 2px 8px}
 
   /* ---------- Summary & Timeline ---------- */
@@ -843,43 +850,61 @@ function renderCards(){
       const mbody=el('div','ms-body');
       mbody.appendChild(el('div','bar',`<i style="width:${mPct}%;background:${it.color}"></i>`));
 
-      // ---- STEPS (sub-tasks with status + expected date) ----
+      // ---- STEPS (sub-tasks with sequence no. + due date + done date) ----
       mbody.appendChild(el('div','steps-title','🧩 '+T('ขั้นตอนการดำเนินงาน','Work steps')));
       if(!(m.steps&&m.steps.length)){
         mbody.appendChild(el('div','step-empty',T('ยังไม่มีขั้นตอน — เพิ่มขั้นตอนแรกด้านล่าง','No steps yet — add the first one below')));
+      } else {
+        const hd=el('div','step-head');
+        hd.innerHTML=`<span>${T('ลำดับ','No.')}</span><span>${T('สถานะ','Status')}</span><span>${T('ขั้นตอน','Step')}</span>`
+          +`<span>${T('กำหนดเสร็จ','Due date')}</span><span>${T('วันที่เสร็จ','Done date')}</span><span></span>`;
+        mbody.appendChild(hd);
       }
       const today=todayStr();
       (m.steps||[]).forEach((s,si)=>{
         const row=el('div','step');
         let flag='';
-        if(s.status==='done'){
-          flag=`<span class="step-flag flag-done">✓ ${T('เสร็จ','done')} ${s.doneAt?esc(fmtDay(s.doneAt)):''}</span>`;
-        } else if(s.due){
+        if(s.status!=='done' && s.due){
           const dd=daysBetween(today,s.due);
           if(dd<0) flag=`<span class="step-flag flag-over">⏰ ${T('เลยกำหนด','overdue')} ${Math.abs(dd)} ${T('วัน','d')}</span>`;
           else if(dd<=3) flag=`<span class="step-flag flag-soon">${T('ใกล้ครบกำหนด','due soon')} ${dd} ${T('วัน','d')}</span>`;
         }
         row.innerHTML=`
+          <span class="step-seq">${si+1}</span>
           <select class="step-status ${stepObj(s.status).cls}" title="${T('สถานะขั้นตอน','Step status')}">
             ${STEP_STATUS.map(o=>`<option value="${o.key}"${s.status===o.key?' selected':''}>${T(o.th,o.en)}</option>`).join('')}
           </select>
           <div class="step-name${s.status==='done'?' done':''}">${esc(s.title)}</div>
-          <div class="step-due">
-            <input type="date" value="${s.due||''}" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
+          <div class="step-datewrap">
+            <label>${T('กำหนดเสร็จ','Due')}</label>
+            <input type="date" class="due" value="${s.due||''}" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
             ${flag}
+          </div>
+          <div class="step-datewrap${s.status==='done'?' done':''}">
+            <label>${T('วันที่เสร็จ','Done')}</label>
+            <input type="date" class="doneat" value="${s.doneAt||''}" title="${T('วันที่ทำเสร็จจริง','Actual completion date')}">
           </div>
           <button class="step-del" title="${T('ลบขั้นตอน','Delete step')}">✕</button>`;
         row.querySelector('.step-status').addEventListener('change',e=>{
           const nv=e.target.value;
           s.status=nv;
-          if(nv==='done'){ s.doneAt=todayStr();
+          if(nv==='done'){ if(!s.doneAt) s.doneAt=todayStr();
             m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
               msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')}`,status:'done'});
           } else { s.doneAt=null; }
           save(); renderCards(); renderOverview();
         });
-        row.querySelector('input[type=date]').addEventListener('change',e=>{
+        row.querySelector('.due').addEventListener('change',e=>{
           s.due=e.target.value||''; save(); renderCards(); renderOverview();
+        });
+        row.querySelector('.doneat').addEventListener('change',e=>{
+          const v=e.target.value||'';
+          s.doneAt=v||null;
+          if(v && s.status!=='done'){ s.status='done';
+            m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
+              msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')} (${fmtDay(v)})`,status:'done'});
+          }
+          save(); renderCards(); renderOverview();
         });
         row.querySelector('.step-del').addEventListener('click',()=>{
           m.steps.splice(si,1); save(); renderCards(); renderOverview();
