@@ -260,21 +260,27 @@
   .feed .fproj{font-size:11.5px;font-weight:800;margin-bottom:2px}
   .feed .fmeta{color:var(--muted2);font-size:11px;margin-top:3px}
 
-  .tl{display:flex;flex-direction:column;gap:14px}
-  .tl-proj{border:1px solid var(--line);border-radius:12px;overflow:hidden;border-left:4px solid var(--accent)}
-  .tl-proj-head{display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--card2);flex-wrap:wrap}
-  .tl-proj-head .num{width:26px;height:26px;border-radius:8px;color:#fff;font-weight:800;font-size:13px;
-    display:grid;place-items:center;flex:0 0 auto;background:var(--accent)}
-  .tl-proj-head .nm{font-weight:800;font-size:14.5px;flex:1;min-width:120px}
-  .tl-proj-head .pc{font-weight:800;font-size:12.5px;color:var(--accent);white-space:nowrap}
-  .tl-proj-body{padding:10px 14px 4px}
-  .tl-item{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);
-    border-radius:10px;padding:9px 12px;margin-bottom:7px;flex-wrap:wrap}
-  .tl-when2{font-size:10px;font-weight:800;color:#fff;padding:3px 8px;border-radius:6px;white-space:nowrap;
-    flex:0 0 auto;min-width:78px;text-align:center}
-  .tl-item .tt{flex:1;min-width:150px}
-  .tl-item .tt-title{font-size:13.5px;font-weight:700}
-  .tl-item .tpct{font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
+  .gantt-hint{font-size:11.5px;color:var(--muted2);margin-bottom:10px}
+  .gantt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  .gantt{border-collapse:separate;border-spacing:0;width:100%;min-width:680px;font-size:12px}
+  .gantt th,.gantt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:8px;vertical-align:top}
+  .gantt th:last-child,.gantt td:last-child{border-right:none}
+  .gantt tbody tr:last-child td{border-bottom:none}
+  .gantt thead th{position:sticky;top:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;
+    color:var(--muted2);background:var(--card2);text-align:center;font-weight:800;white-space:nowrap;z-index:1}
+  .gantt .proj-col{position:sticky;left:0;background:var(--card);min-width:180px;max-width:210px;text-align:left;z-index:2}
+  .gantt thead .proj-col{background:var(--card2);z-index:3}
+  .g-projname{font-weight:800;font-size:12.5px;display:flex;align-items:center;gap:7px}
+  .g-projname .num{width:22px;height:22px;border-radius:6px;color:#fff;font-weight:800;font-size:11px;
+    display:grid;place-items:center;flex:0 0 auto}
+  .g-projpct{font-size:11px;color:var(--muted2);margin-left:29px;margin-top:2px}
+  .g-bar{border-radius:7px;padding:6px 9px;margin-bottom:5px;font-weight:600;border:1px solid transparent;min-width:120px}
+  .g-bar:last-child{margin-bottom:0}
+  .g-bar .gp{font-weight:800;font-variant-numeric:tabular-nums;float:right;margin-left:8px}
+  .gb-done{background:rgba(34,197,139,.16);color:var(--green);border-color:rgba(34,197,139,.35)}
+  .gb-prog{background:rgba(255,176,32,.16);color:var(--amber);border-color:rgba(255,176,32,.35)}
+  .gb-risk{background:rgba(255,93,108,.16);color:var(--red);border-color:rgba(255,93,108,.35)}
+  .gb-todo{background:var(--card2);color:var(--muted);border-color:var(--line)}
 
   /* step breakdown */
   .sbwrap{display:flex;flex-direction:column;gap:14px}
@@ -834,27 +840,38 @@ function renderFeed(){
   }).join('');
 }
 
-/* ---- Auto work timeline (grouped by initiative, ordered by period) ---- */
+/* ---- Work timeline as a Gantt grid: rows = initiatives, columns = shared time periods ---- */
 function renderTimeline(){
   const tl=$('#timeline'); if(!tl) return;
-  tl.innerHTML = data.initiatives.map((it,i)=>{
-    const rows=it.milestones.map(m=>{
-      const st=statusObj(msStatus(m));
-      return `<div class="tl-item">
-        <span class="tl-when2" style="background:${it.color}">${esc(m.when)}</span>
-        <div class="tt"><div class="tt-title">${esc(T(m.titleTH,m.titleEN))}</div></div>
-        <span class="badge ${st.cls}">${T(st.th,st.en)}</span>
-        <span class="tpct" style="color:${it.color}">${msPct(m)}%</span>
-      </div>`;
-    }).join('') || `<div class="sb-empty">${T('ยังไม่มีงานย่อย','No work items yet')}</div>`;
-    const doneCount=it.milestones.filter(m=>msStatus(m)==='done').length;
-    return `<div class="tl-proj" style="--accent:${it.color}">
-      <div class="tl-proj-head"><span class="num">${i+1}</span>
-        <span class="nm">${esc(T(it.titleTH,it.titleEN))}</span>
-        <span class="pc">${T('เสร็จ','done')} ${doneCount}/${it.milestones.length} · ${initPct(it)}%</span></div>
-      <div class="tl-proj-body">${rows}</div>
-    </div>`;
+  const BAR={done:'gb-done',prog:'gb-prog',risk:'gb-risk',todo:'gb-todo'};
+  // shared time axis — unique periods in first-seen order
+  const periods=[];
+  data.initiatives.forEach(it=>it.milestones.forEach(m=>{ if(!periods.includes(m.when)) periods.push(m.when); }));
+
+  const head = `<tr><th class="proj-col">${T('โครงการ \\ ช่วงเวลา','Initiative \\ Period')}</th>`
+    + periods.map(p=>`<th>${esc(p)}</th>`).join('') + `</tr>`;
+
+  const body = data.initiatives.map((it,i)=>{
+    const cells = periods.map(p=>{
+      const ms=it.milestones.filter(m=>m.when===p);
+      if(!ms.length) return `<td></td>`;
+      const bars=ms.map(m=>{
+        const cls=BAR[msStatus(m)]||'gb-todo';
+        return `<div class="g-bar ${cls}" title="${esc(T(m.titleTH,m.titleEN))}">`
+          +`${esc(T(m.titleTH,m.titleEN))}<span class="gp">${msPct(m)}%</span></div>`;
+      }).join('');
+      return `<td>${bars}</td>`;
+    }).join('');
+    return `<tr>
+      <td class="proj-col">
+        <div class="g-projname"><span class="num" style="background:${it.color}">${i+1}</span>${esc(T(it.titleTH,it.titleEN))}</div>
+        <div class="g-projpct">${initPct(it)}%</div>
+      </td>${cells}
+    </tr>`;
   }).join('');
+
+  tl.innerHTML = `<div class="gantt-hint">${T('งานที่อยู่คอลัมน์เดียวกัน = เริ่มในช่วงเวลาเดียวกัน','Items in the same column start in the same period')}</div>`
+    + `<div class="gantt-scroll"><table class="gantt"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
 /* ---- Render owner filter ---- */
