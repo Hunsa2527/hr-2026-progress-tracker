@@ -107,6 +107,10 @@
     font-size:20px;font-weight:800;color:#fff;background:var(--accent)}
   .init-title{flex:1;min-width:0}
   .init-title h2{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .init-title-edit{font-family:inherit;font-size:18px;font-weight:800;color:var(--txt);background:transparent;
+    border:1px solid transparent;border-radius:8px;padding:2px 8px;margin:-2px -8px;min-width:220px;max-width:100%;cursor:text}
+  .init-title-edit:hover{border-color:var(--line2);background:var(--card2)}
+  .init-title-edit:focus{outline:none;border-color:var(--blue2);background:var(--card2)}
   .init-title .en{font-size:12.5px;color:var(--muted);font-weight:600}
   .owner{font-size:12px;color:var(--muted);margin-top:3px}
   .owner b{color:var(--txt)}
@@ -209,6 +213,11 @@
   .step-status.ss-done{color:var(--green);border-color:rgba(34,197,139,.55)}
   .step-status.ss-delay{color:var(--red);border-color:rgba(255,93,108,.55)}
   .step-name{font-size:13.5px;font-weight:600;min-width:0;word-break:break-word}
+  .step-name-edit{width:100%;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--txt);
+    background:transparent;border:1px solid transparent;border-radius:7px;padding:4px 7px;margin:-4px -7px;cursor:text}
+  .step-name-edit:hover{border-color:var(--line2);background:var(--card2)}
+  .step-name-edit:focus{outline:none;border-color:var(--blue2);background:var(--card2)}
+  .step-name-edit.done{text-decoration:line-through;color:var(--muted)}
   .step-name.done{text-decoration:line-through;color:var(--muted)}
   .step-datewrap{display:flex;flex-direction:column;gap:2px;min-width:0}
   .step-datewrap label{font-size:9.5px;font-weight:700;letter-spacing:.3px;color:var(--muted2);text-transform:uppercase}
@@ -972,7 +981,7 @@ function renderCards(){
     head.innerHTML=`
       <div class="num">${idx+1}</div>
       <div class="init-title">
-        <h2>${esc(T(it.titleTH,it.titleEN))} ${badgeFor(st)}</h2>
+        <h2><input class="init-title-edit" value="${esc(T(it.titleTH,it.titleEN))}" title="${T('คลิกเพื่อแก้ชื่อโครงการ','Click to rename initiative')}"> ${badgeFor(st)}</h2>
         <div class="en">${esc(it.tagEN)}</div>
         <div class="owner">👤 <span data-th="ผู้รับผิดชอบ" data-en="Owner">${T('ผู้รับผิดชอบ','Owner')}</span>: <b>${esc(it.owner)}</b></div>
       </div>
@@ -982,6 +991,12 @@ function renderCards(){
       </div>
       <div class="chev">▶</div>`;
     head.addEventListener('click',()=>{ card.classList.toggle('open'); });
+    const itEdit=head.querySelector('.init-title-edit');
+    itEdit.addEventListener('click',e=>e.stopPropagation());
+    itEdit.addEventListener('change',e=>{
+      const v=e.target.value.trim(); if(!v){ renderCards(); return; }
+      it.titleTH=v; it.titleEN=v; save(); renderCards(); renderOverview();
+    });
     card.appendChild(head);
 
     /* body */
@@ -1056,7 +1071,7 @@ function renderCards(){
           <select class="step-status ${stepObj(s.status).cls}" title="${T('สถานะขั้นตอน','Step status')}">
             ${STEP_STATUS.map(o=>`<option value="${o.key}"${s.status===o.key?' selected':''}>${T(o.th,o.en)}</option>`).join('')}
           </select>
-          <div class="step-name${s.status==='done'?' done':''}">${esc(s.title)}</div>
+          <input class="step-name-edit${s.status==='done'?' done':''}" value="${esc(s.title)}" title="${T('คลิกเพื่อแก้ชื่อขั้นตอน','Click to rename step')}">
           <div class="step-datewrap">
             <label>${T('กำหนดเสร็จ','Due')}</label>
             <input type="date" class="due" min="2000-01-01" max="2100-12-31" value="${s.due||''}" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
@@ -1090,6 +1105,10 @@ function renderCards(){
               msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')} (${fmtDay(v)})`,status:'done'});
           }
           save(); renderCards(); renderOverview();
+        });
+        row.querySelector('.step-name-edit').addEventListener('change',e=>{
+          const v=e.target.value.trim(); if(!v){ renderCards(); return; }
+          s.title=v; save(); renderCards(); renderOverview();
         });
         row.querySelector('.step-del').addEventListener('click',()=>{
           m.steps.splice(si,1); save(); renderCards(); renderOverview();
