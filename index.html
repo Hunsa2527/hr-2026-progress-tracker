@@ -212,9 +212,14 @@
   .flag-soon{background:rgba(255,176,32,.16);color:var(--amber)}
   .step-del{color:var(--muted2);cursor:pointer;border:none;background:none;font-size:15px;justify-self:end}
   .step-del:hover{color:var(--red)}
-  .step-add{display:grid;grid-template-columns:1fr 160px auto;gap:9px;align-items:center;margin:4px 0 6px}
+  .step-add{display:grid;grid-template-columns:1fr 120px 150px auto;gap:9px;align-items:end;
+    margin:6px 0 6px;padding:9px 11px;background:var(--card2);border:1px dashed var(--line2);border-radius:10px}
   @media(max-width:720px){.step-add{grid-template-columns:1fr}}
   .step-add input[type=text],.step-add input[type=date]{width:100%}
+  .step-add .st-status{font-weight:700;border-radius:8px;padding:7px 8px;font-size:12px;
+    border:1.5px solid var(--line2);cursor:pointer;background:var(--card);color:var(--muted);width:100%}
+  .step-add .lbl{font-size:9.5px;font-weight:700;letter-spacing:.3px;color:var(--muted2);
+    text-transform:uppercase;display:block;margin-bottom:3px}
   .step-head{display:grid;grid-template-columns:26px 116px 1fr 130px 130px 22px;gap:9px;
     font-size:9.5px;font-weight:700;letter-spacing:.3px;color:var(--muted2);text-transform:uppercase;
     padding:0 11px 4px;margin-top:2px}
@@ -912,17 +917,22 @@ function renderCards(){
         mbody.appendChild(row);
       });
 
-      // add-step form
+      // add-step form (with status + labeled due date)
       const addf=el('div','step-add');
       addf.innerHTML=`
-        <input type="text" class="st-title" placeholder="${T('ขั้นตอนถัดไป เช่น สร้างฐานข้อมูล','Next step, e.g. Build database')}">
-        <input type="date" class="st-due" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}">
+        <div><span class="lbl">${T('ชื่อขั้นตอน','Step name')}</span>
+          <input type="text" class="st-title" placeholder="${T('เช่น สร้างฐานข้อมูล','e.g. Build database')}"></div>
+        <div><span class="lbl">${T('สถานะ','Status')}</span>
+          <select class="st-status">${STEP_STATUS.map(o=>`<option value="${o.key}">${T(o.th,o.en)}</option>`).join('')}</select></div>
+        <div><span class="lbl">${T('กำหนดเสร็จ','Due date')}</span>
+          <input type="date" class="st-due" title="${T('วันที่คาดว่าจะเสร็จ','Expected completion date')}"></div>
         <button class="btn primary st-add">＋ ${T('เพิ่มขั้นตอน','Add step')}</button>`;
       const doAdd=()=>{
         const title=addf.querySelector('.st-title').value.trim();
         const due=addf.querySelector('.st-due').value;
+        const status=addf.querySelector('.st-status').value;
         if(!title){ toast(T('กรุณากรอกชื่อขั้นตอน','Please enter a step name')); return; }
-        m.steps.push({title,status:'plan',due:due||'',addedAt:todayStr(),doneAt:null});
+        m.steps.push({title,status,due:due||'',addedAt:todayStr(),doneAt: status==='done'?todayStr():null});
         m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
           msg:`${T('เพิ่มขั้นตอน','Added step')}: ${title}${due?` (${T('กำหนดเสร็จ','due')} ${fmtDay(due)})`:''}`});
         save(); renderCards(); renderOverview();
