@@ -226,6 +226,12 @@
   @media(max-width:820px){.step-head{display:none}}
   .step-empty{color:var(--muted2);font-size:12.5px;font-style:italic;padding:2px 2px 8px}
 
+  /* add work item (milestone) */
+  .ms-add{display:grid;grid-template-columns:1fr 180px auto;gap:9px;align-items:center;margin:14px 0 2px;
+    padding:11px 13px;background:var(--card2);border:1px dashed var(--line2);border-radius:12px}
+  @media(max-width:720px){.ms-add{grid-template-columns:1fr}}
+  .ms-add input[type=text]{width:100%}
+
   /* ---------- Summary & Timeline ---------- */
   .stpanel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     box-shadow:var(--shadow);margin-top:18px;overflow:hidden}
@@ -512,7 +518,8 @@ const SEED = {
         {id:'m4a',when:'ก.ค. · JUL',titleTH:'สร้างฐานข้อมูลกลาง',titleEN:'Build central database',pct:0,logs:[]},
         {id:'m4b',when:'ส.ค. · AUG',titleTH:'Turnover Dashboard',titleEN:'Turnover Dashboard',pct:0,logs:[]},
         {id:'m4c',when:'ก.ย. · SEP',titleTH:'Attendance Dashboard',titleEN:'Attendance Dashboard',pct:0,logs:[]},
-        {id:'m4d',when:'ต่อเนื่อง · ONGOING',titleTH:'Employee Chatbot',titleEN:'Employee Chatbot',pct:0,logs:[]}
+        {id:'m4d',when:'ต่อเนื่อง · ONGOING',titleTH:'Employee Chatbot',titleEN:'Employee Chatbot',pct:0,logs:[]},
+        {id:'m4e',when:'ต่อเนื่อง · ONGOING',titleTH:'Dashboard ประเมินค่างาน',titleEN:'Job Evaluation Dashboard',pct:0,logs:[]}
       ]
     },
     {
@@ -587,7 +594,17 @@ let lang = prefs.lang || 'th';
 let theme = prefs.theme || 'dark';
 
 function migrate(d){
-  (d.initiatives||[]).forEach(it=>(it.milestones||[]).forEach(m=>{
+  if(!Array.isArray(d.initiatives)) d.initiatives=[];
+  // merge any milestones added to SEED (matched by id) into saved data
+  SEED.initiatives.forEach(si=>{
+    const di=d.initiatives.find(x=>x.id===si.id);
+    if(!di) return;
+    if(!Array.isArray(di.milestones)) di.milestones=[];
+    si.milestones.forEach(sm=>{
+      if(!di.milestones.some(m=>m.id===sm.id)) di.milestones.push(structuredClone(sm));
+    });
+  });
+  d.initiatives.forEach(it=>(it.milestones||[]).forEach(m=>{
     if(!m.status) m.status = m.pct>=100?'done':m.pct>0?'prog':'todo';
     if(!Array.isArray(m.logs)) m.logs=[];
     if(!Array.isArray(m.steps)) m.steps=[];
@@ -1051,6 +1068,23 @@ function renderCards(){
       ms.appendChild(mbody);
       body.appendChild(ms);
     });
+
+    // add new work item (milestone) to this initiative
+    const addMs=el('div','ms-add');
+    addMs.innerHTML=`
+      <input type="text" class="mnew-title" placeholder="${T('เพิ่มงานย่อยใหม่ เช่น Dashboard ประเมินค่างาน','Add a work item, e.g. Job Evaluation Dashboard')}">
+      <input type="text" class="mnew-when" placeholder="${T('ช่วงเวลา (เช่น ต่อเนื่อง)','Period (e.g. Ongoing)')}">
+      <button class="btn primary mnew-add">＋ ${T('เพิ่มงานย่อย','Add work item')}</button>`;
+    const doAddMs=()=>{
+      const t=addMs.querySelector('.mnew-title').value.trim();
+      const w=addMs.querySelector('.mnew-when').value.trim()||T('เพิ่มเติม','Extra');
+      if(!t){ toast(T('กรุณากรอกชื่องานย่อย','Please enter a work item name')); return; }
+      it.milestones.push({id:'ms'+Date.now(),when:w,titleTH:t,titleEN:t,pct:0,status:'todo',logs:[],steps:[]});
+      save(); renderCards(); renderOverview();
+    };
+    addMs.querySelector('.mnew-add').addEventListener('click',doAddMs);
+    addMs.querySelector('.mnew-title').addEventListener('keydown',e=>{if(e.key==='Enter')doAddMs();});
+    body.appendChild(addMs);
 
     card.appendChild(body);
     wrap.appendChild(card);
