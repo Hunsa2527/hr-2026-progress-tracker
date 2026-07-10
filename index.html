@@ -355,7 +355,8 @@
         <button class="btn ghost" id="langBtn" title="Toggle language">🌐 EN</button>
         <button class="btn ghost" id="themeBtn" title="Toggle theme">🌙</button>
         <button class="btn ghost" id="printBtn">🖨️ <span data-th="พิมพ์รายงาน" data-en="Print">พิมพ์รายงาน</span></button>
-        <button class="btn ghost" id="exportBtn">⬇️ <span data-th="ส่งออก" data-en="Export">ส่งออก</span></button>
+        <button class="btn ghost" id="exportXlsBtn">📊 <span data-th="ส่งออก Excel" data-en="Export Excel">ส่งออก Excel</span></button>
+        <button class="btn ghost" id="exportBtn">⬇️ <span data-th="สำรอง (JSON)" data-en="Backup (JSON)">สำรอง (JSON)</span></button>
         <button class="btn ghost" id="importBtn">⬆️ <span data-th="นำเข้า" data-en="Import">นำเข้า</span></button>
         <input type="file" id="importFile" accept="application/json" hidden>
         <button class="btn ghost" id="resetBtn" title="Reset all data">↺</button>
@@ -1257,6 +1258,79 @@ $('#exportBtn').addEventListener('click',()=>{
   const d=new Date(); const stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`HR2026-progress-${stamp}.json`; a.click();
   toast(T('ส่งออกข้อมูลแล้ว','Data exported'));
+});
+
+/* ---- Export to Excel (SpreadsheetML 2003 — real .xls, no external library) ---- */
+function xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+function xlCell(v,type,style){
+  const t=type||'String';
+  const val = t==='Number' ? (v===''||v==null?'':v) : xmlEsc(v);
+  return `<Cell${style?` ss:StyleID="${style}"`:''}><Data ss:Type="${t}">${val}</Data></Cell>`;
+}
+function xlRow(cells){ return `<Row>${cells}</Row>`; }
+function statusStyle(st){ return ({done:'sDone',prog:'sProg',risk:'sRisk',todo:'sTodo'})[st]||'sTodo'; }
+
+$('#exportXlsBtn').addEventListener('click',()=>{
+  const stTh = s=>T(statusObj(s).th,statusObj(s).en);
+  const stpTh = s=>T(stepObj(s).th,stepObj(s).en);
+
+  // Sheet 1 — project summary
+  const sumHead = xlRow(['โครงการ','ผู้รับผิดชอบ','งานย่อยทั้งหมด','งานเสร็จ','ความคืบหน้า (%)','สถานะรวม']
+    .map(h=>xlCell(h,'String','hdr')).join(''));
+  const sumRows = data.initiatives.map((it,i)=>{
+    const done=it.milestones.filter(m=>msStatus(m)==='done').length;
+    return xlRow(
+      xlCell(`${i+1}. ${T(it.titleTH,it.titleEN)}`)+
+      xlCell(it.owner)+
+      xlCell(it.milestones.length,'Number')+
+      xlCell(done,'Number')+
+      xlCell(initPct(it),'Number')+
+      xlCell(stTh(initStatus(it)),'String',statusStyle(initStatus(it)))
+    );
+  }).join('');
+
+  // Sheet 2 — work / step details
+  const detHead = xlRow(['โครงการ','งานย่อย','ช่วงเวลา','สถานะงาน','งาน %','ลำดับ','ขั้นตอน','สถานะขั้นตอน','กำหนดเสร็จ','วันที่เสร็จ']
+    .map(h=>xlCell(h,'String','hdr')).join(''));
+  let detRows='';
+  data.initiatives.forEach((it,i)=>{
+    it.milestones.forEach(m=>{
+      const base = xlCell(`${i+1}. ${T(it.titleTH,it.titleEN)}`)+xlCell(T(m.titleTH,m.titleEN))+xlCell(m.when)
+        + xlCell(stTh(msStatus(m)),'String',statusStyle(msStatus(m))) + xlCell(msPct(m),'Number');
+      if(m.steps && m.steps.length){
+        m.steps.forEach((s,si)=>{
+          detRows += xlRow(base + xlCell(si+1,'Number') + xlCell(s.title)
+            + xlCell(stpTh(s.status)) + xlCell(s.due?fmtDay(s.due):'') + xlCell(s.doneAt?fmtDay(s.doneAt):''));
+        });
+      } else {
+        detRows += xlRow(base + xlCell('','Number') + xlCell('—') + xlCell('') + xlCell('') + xlCell(''));
+      }
+    });
+  });
+
+  const cols = n => Array.from({length:n},()=>'<Column ss:AutoFitWidth="1" ss:Width="120"/>').join('');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default"><Font ss:FontName="Tahoma" ss:Size="10"/><Alignment ss:Vertical="Center"/></Style>
+  <Style ss:ID="hdr"><Font ss:FontName="Tahoma" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#2b6cff" ss:Pattern="Solid"/><Alignment ss:Vertical="Center" ss:WrapText="1"/></Style>
+  <Style ss:ID="sDone"><Interior ss:Color="#d6f5e6" ss:Pattern="Solid"/><Font ss:Color="#0f7a4d"/></Style>
+  <Style ss:ID="sProg"><Interior ss:Color="#fff0d1" ss:Pattern="Solid"/><Font ss:Color="#9a6b00"/></Style>
+  <Style ss:ID="sRisk"><Interior ss:Color="#ffd9dd" ss:Pattern="Solid"/><Font ss:Color="#b3162a"/></Style>
+  <Style ss:ID="sTodo"><Interior ss:Color="#eef1f6" ss:Pattern="Solid"/><Font ss:Color="#5a6b86"/></Style>
+ </Styles>
+ <Worksheet ss:Name="สรุปโครงการ"><Table>${cols(6)}${sumHead}${sumRows}</Table></Worksheet>
+ <Worksheet ss:Name="รายละเอียดงาน"><Table>${cols(10)}${detHead}${detRows}</Table></Worksheet>
+</Workbook>`;
+
+  const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+  const a=el('a'); a.href=URL.createObjectURL(blob);
+  const d=new Date(); const stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  a.download=`HR2026-progress-${stamp}.xls`; a.click();
+  toast(T('ส่งออก Excel แล้ว','Excel exported'));
 });
 $('#importBtn').addEventListener('click',()=>$('#importFile').click());
 $('#importFile').addEventListener('change',e=>{
