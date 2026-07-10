@@ -165,6 +165,9 @@
   .ms-head{display:flex;align-items:center;gap:12px;padding:12px 14px}
   .ms-when{font-size:11px;font-weight:800;letter-spacing:.5px;color:#fff;background:var(--accent);
     padding:4px 10px;border-radius:7px;white-space:nowrap}
+  .ms-when-edit{font-size:11px;font-weight:800;letter-spacing:.3px;color:#fff;padding:4px 8px;border-radius:7px;
+    border:1px solid rgba(255,255,255,.25);font-family:inherit;width:132px;flex:0 0 auto;cursor:text;text-align:center}
+  .ms-when-edit:focus{outline:none;border-color:#fff}
   .ms-title{flex:1;min-width:0}
   .ms-title .t{font-weight:700;font-size:14.5px}
   .ms-title .e{font-size:12px;color:var(--muted)}
@@ -1008,7 +1011,7 @@ function renderCards(){
       const ms=el('div','ms');
       const mhead=el('div','ms-head');
       mhead.innerHTML=`
-        <span class="ms-when" style="background:${it.color}">${esc(m.when)}</span>
+        <input class="ms-when-edit" style="background:${it.color}" value="${esc(m.when)}" title="${T('คลิกเพื่อแก้ช่วงเวลา','Click to edit period')}">
         <div class="ms-title"><input class="ms-title-edit" value="${esc(T(m.titleTH,m.titleEN))}" title="${T('คลิกเพื่อแก้ชื่องาน','Click to rename')}"></div>
         <div class="ms-ctrl">
           ${badgeFor(mSt)}
@@ -1019,6 +1022,11 @@ function renderCards(){
         const v=e.target.value.trim();
         if(!v){ renderCards(); return; }
         m.titleTH=v; m.titleEN=v; save(); renderCards(); renderOverview();
+      });
+      mhead.querySelector('.ms-when-edit').addEventListener('change',e=>{
+        const v=e.target.value.trim();
+        if(!v){ renderCards(); return; }
+        m.when=v; save(); renderCards(); renderOverview();
       });
 
       const mbody=el('div','ms-body');
