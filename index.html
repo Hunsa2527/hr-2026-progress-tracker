@@ -692,14 +692,27 @@ function migrate(d){
   return d;
 }
 function freshData(){ return migrate(structuredClone(SEED)); }
+const BAK_KEY='hr2026_tracker_bak_v1';
+function dataHasContent(d){ return !!(d&&d.initiatives&&d.initiatives.some(it=>(it.milestones||[]).some(
+  m=>(m.steps&&m.steps.length)||(m.logs&&m.logs.length)))); }
 function load(){
   let d=null;
   try{ const s = localStorage.getItem(STORE_KEY); if(s) d=JSON.parse(s); }catch(e){}
   if(!d || !d.initiatives) d=structuredClone(SEED);
-  return migrate(d);
+  d=migrate(d);
+  // safety net: if the main store looks empty but a backup holds real work, restore it
+  if(!dataHasContent(d)){
+    try{ const b=localStorage.getItem(BAK_KEY);
+      if(b){ const bd=migrate(JSON.parse(b));
+        if(dataHasContent(bd)){ d=bd; localStorage.setItem(STORE_KEY, JSON.stringify(d)); } } }catch(e){}
+  }
+  return d;
 }
 function save(){ data.updatedAt = new Date().toISOString();
-  localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+  const s=JSON.stringify(data);
+  localStorage.setItem(STORE_KEY, s);
+  if(dataHasContent(data)) localStorage.setItem(BAK_KEY, s); // keep a backup of real (non-empty) data
+}
 function loadPrefs(){ try{return JSON.parse(localStorage.getItem(PREF_KEY))||{}}catch(e){return {}} }
 function savePrefs(){ localStorage.setItem(PREF_KEY, JSON.stringify({lang,theme})); }
 
@@ -1414,6 +1427,7 @@ $('#importFile').addEventListener('change',e=>{
 $('#resetBtn').addEventListener('click',()=>{
   if(confirm(T('ต้องการล้างข้อมูลทั้งหมดและเริ่มใหม่หรือไม่?\n(ควรส่งออกสำรองก่อน)',
               'Reset all data to the original plan?\n(Export a backup first.)'))){
+    localStorage.removeItem(BAK_KEY);   // deliberate reset clears the safety backup too
     data=freshData(); save(); renderAll();
     toast(T('รีเซ็ตเรียบร้อย','Reset done'));
   }
