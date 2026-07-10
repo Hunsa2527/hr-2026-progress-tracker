@@ -113,10 +113,11 @@
     font-size:20px;font-weight:800;color:#fff;background:var(--accent)}
   .init-title{flex:1;min-width:0}
   .init-title h2{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .init-title-edit{font-family:inherit;font-size:18px;font-weight:800;color:var(--txt);background:transparent;
-    border:1px solid transparent;border-radius:8px;padding:2px 8px;margin:-2px -8px;min-width:220px;max-width:100%;cursor:text}
+  .init-title-edit{display:inline-block;font-family:inherit;font-size:18px;font-weight:800;color:var(--txt);
+    background:transparent;border:1px solid transparent;border-radius:8px;padding:2px 8px;margin:-2px -4px;
+    cursor:text;outline:none;max-width:100%;word-break:break-word}
   .init-title-edit:hover{border-color:var(--line2);background:var(--card2)}
-  .init-title-edit:focus{outline:none;border-color:var(--blue2);background:var(--card2)}
+  .init-title-edit:focus{border-color:var(--blue2);background:var(--card2)}
   .init-title .en{font-size:12.5px;color:var(--muted);font-weight:600}
   .owner{font-size:12px;color:var(--muted);margin-top:3px}
   .owner b{color:var(--txt)}
@@ -989,7 +990,7 @@ function renderCards(){
     head.innerHTML=`
       <div class="num">${idx+1}</div>
       <div class="init-title">
-        <h2><input class="init-title-edit" value="${esc(T(it.titleTH,it.titleEN))}" title="${T('คลิกเพื่อแก้ชื่อโครงการ','Click to rename initiative')}"> ${badgeFor(st)}</h2>
+        <h2><span class="init-title-edit" contenteditable="plaintext-only" spellcheck="false" title="${T('คลิกเพื่อแก้ชื่อโครงการ','Click to rename initiative')}">${esc(T(it.titleTH,it.titleEN))}</span> ${badgeFor(st)}</h2>
         <div class="en">${esc(it.tagEN)}</div>
         <div class="owner">👤 <span data-th="ผู้รับผิดชอบ" data-en="Owner">${T('ผู้รับผิดชอบ','Owner')}</span>: <b>${esc(it.owner)}</b></div>
       </div>
@@ -1001,9 +1002,11 @@ function renderCards(){
     head.addEventListener('click',()=>{ card.classList.toggle('open'); });
     const itEdit=head.querySelector('.init-title-edit');
     itEdit.addEventListener('click',e=>e.stopPropagation());
-    itEdit.addEventListener('change',e=>{
-      const v=e.target.value.trim(); if(!v){ renderCards(); return; }
-      it.titleTH=v; it.titleEN=v; save(); renderCards(); renderOverview();
+    itEdit.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); itEdit.blur(); } });
+    itEdit.addEventListener('blur',()=>{
+      const v=itEdit.textContent.trim();
+      if(!v){ renderCards(); return; }
+      if(v!==T(it.titleTH,it.titleEN)){ it.titleTH=v; it.titleEN=v; save(); renderCards(); renderOverview(); }
     });
     card.appendChild(head);
 
@@ -1306,7 +1309,9 @@ $('#addInitBtn').addEventListener('click',()=>{
   save(); renderAll();
   const cards=document.querySelectorAll('.init'); const last=cards[cards.length-1];
   if(last){ last.classList.add('open'); last.scrollIntoView({block:'center'});
-    const t=last.querySelector('.init-title-edit'); if(t){ t.focus(); t.select(); } }
+    const t=last.querySelector('.init-title-edit');
+    if(t){ t.focus(); const r=document.createRange(); r.selectNodeContents(t);
+      const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); } }
   toast(T('เพิ่มกลุ่มงานใหม่ — คลิกที่ชื่อเพื่อแก้','New group added — click the name to rename'));
 });
 $('#expandAll').addEventListener('click',()=>{ prefs.openAll=true; document.querySelectorAll('.init').forEach(c=>c.classList.add('open')); });
