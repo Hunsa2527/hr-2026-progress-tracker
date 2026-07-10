@@ -168,6 +168,10 @@
   .ms-title{flex:1;min-width:0}
   .ms-title .t{font-weight:700;font-size:14.5px}
   .ms-title .e{font-size:12px;color:var(--muted)}
+  .ms-title-edit{width:100%;font-family:inherit;font-weight:700;font-size:14.5px;color:var(--txt);
+    background:transparent;border:1px solid transparent;border-radius:7px;padding:3px 7px;margin:-3px -7px;cursor:text}
+  .ms-title-edit:hover{border-color:var(--line2);background:var(--card2)}
+  .ms-title-edit:focus{outline:none;border-color:var(--blue2);background:var(--card2)}
   .ms-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
   .range{display:flex;align-items:center;gap:8px}
   input[type=range]{width:120px;accent-color:var(--accent);cursor:pointer}
@@ -482,7 +486,7 @@ const SEED = {
         {th:'พนักงานเกรด F ลดลง ≥20%',en:'Grade-F employees reduced ≥20%',hit:false}
       ],
       milestones:[
-        {id:'m1a',when:'ก.ค. · JUL',titleTH:'อบรมหัวหน้างานทั้งหมด',titleEN:'Train all supervisors',pct:0,logs:[]},
+        {id:'m1a',when:'ก.ค. · JUL',titleTH:'พัฒนาระบบ AI coaching',titleEN:'Develop AI coaching system',pct:0,logs:[]},
         {id:'m1b',when:'ส.ค. · AUG',titleTH:'Coaching หัวหน้างานใหม่',titleEN:'Coaching for new supervisors',pct:0,logs:[]},
         {id:'m1c',when:'ก.ย. · SEP',titleTH:'ติดตามผลและรีวิว',titleEN:'Follow up and review results',pct:0,logs:[]}
       ]
@@ -653,6 +657,15 @@ function migrate(d){
       if(m.id==='m4e' && /ต่อเนื่อง|ONGOING/i.test(m.when||'')) m.when='ก.ย. · SEP';
     }));
     d._fixEval=true;
+  }
+  // one-time: rename m1a to "พัฒนาระบบ AI coaching" (only if still the original title)
+  if(!d._renameM1a){
+    d.initiatives.forEach(it=>(it.milestones||[]).forEach(m=>{
+      if(m.id==='m1a' && (m.titleTH==='อบรมหัวหน้างานทั้งหมด' || m.titleEN==='Train all supervisors')){
+        m.titleTH='พัฒนาระบบ AI coaching'; m.titleEN='Develop AI coaching system';
+      }
+    }));
+    d._renameM1a=true;
   }
   return d;
 }
@@ -995,12 +1008,17 @@ function renderCards(){
       const mhead=el('div','ms-head');
       mhead.innerHTML=`
         <span class="ms-when" style="background:${it.color}">${esc(m.when)}</span>
-        <div class="ms-title"><div class="t">${esc(T(m.titleTH,m.titleEN))}</div></div>
+        <div class="ms-title"><input class="ms-title-edit" value="${esc(T(m.titleTH,m.titleEN))}" title="${T('คลิกเพื่อแก้ชื่องาน','Click to rename')}"></div>
         <div class="ms-ctrl">
           ${badgeFor(mSt)}
           <span class="ms-pct" style="color:${it.color}">${mPct}%</span>
         </div>`;
       ms.appendChild(mhead);
+      mhead.querySelector('.ms-title-edit').addEventListener('change',e=>{
+        const v=e.target.value.trim();
+        if(!v){ renderCards(); return; }
+        m.titleTH=v; m.titleEN=v; save(); renderCards(); renderOverview();
+      });
 
       const mbody=el('div','ms-body');
       mbody.appendChild(el('div','bar',`<i style="width:${mPct}%;background:${it.color}"></i>`));
