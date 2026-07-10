@@ -268,6 +268,31 @@
   .tl-item .tt{flex:1;min-width:140px;font-size:13.5px;font-weight:600}
   .tl-item .tpct{font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
 
+  /* step breakdown */
+  .sbwrap{display:flex;flex-direction:column;gap:14px}
+  .sb-init{border:1px solid var(--line);border-radius:12px;overflow:hidden;border-left:4px solid var(--accent)}
+  .sb-init-head{display:flex;align-items:center;gap:11px;padding:12px 14px;background:var(--card2);flex-wrap:wrap}
+  .sb-init-head .num{width:26px;height:26px;border-radius:8px;color:#fff;font-weight:800;font-size:13px;
+    display:grid;place-items:center;flex:0 0 auto;background:var(--accent)}
+  .sb-init-head .nm{font-weight:800;font-size:14.5px;flex:1;min-width:120px}
+  .sb-init-head .pc{font-weight:800;font-size:14px;color:var(--accent)}
+  .sb-empty{padding:11px 15px;color:var(--muted2);font-size:12.5px;font-style:italic}
+  .sb-ms{padding:12px 15px;border-top:1px solid var(--line)}
+  .sb-ms:first-child{border-top:none}
+  .sb-ms-title{font-weight:700;font-size:13.5px;margin-bottom:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sb-ms-when{font-size:10px;font-weight:800;color:#fff;background:var(--accent);padding:2px 7px;border-radius:6px}
+  .sb-ms-meta{font-size:11.5px;color:var(--muted2);margin-bottom:9px}
+  .sb-group{display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;font-size:12.5px}
+  .sb-group:last-child{margin-bottom:0}
+  .sb-gtag{font-weight:700;font-size:10.5px;padding:3px 9px;border-radius:20px;white-space:nowrap;flex:0 0 auto}
+  .sb-chips{display:flex;gap:6px;flex-wrap:wrap;padding-top:1px}
+  .sb-chip{background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;font-size:12px}
+  .sb-chip small{color:var(--muted2);font-weight:600}
+  .g-done{background:rgba(34,197,139,.16);color:var(--green)}
+  .g-doing{background:rgba(255,176,32,.16);color:var(--amber)}
+  .g-plan{background:rgba(140,160,190,.16);color:var(--muted)}
+  .g-delay{background:rgba(255,93,108,.16);color:var(--red)}
+
   footer{margin-top:26px;text-align:center;color:var(--muted2);font-size:12px}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(30px);
     background:var(--card2);border:1px solid var(--line2);color:var(--txt);padding:11px 18px;border-radius:12px;
@@ -336,6 +361,7 @@
       <h3 data-th="สรุป &amp; ไทม์ไลน์ (สร้างอัตโนมัติ)" data-en="Summary &amp; Timeline (auto-generated)">สรุป &amp; ไทม์ไลน์ (สร้างอัตโนมัติ)</h3>
       <div class="seg">
         <button id="segSum" class="active" data-th="📊 สรุปความคืบหน้า" data-en="📊 Progress Summary">📊 สรุปความคืบหน้า</button>
+        <button id="segSteps" data-th="📋 สรุปขั้นตอน" data-en="📋 Step Breakdown">📋 สรุปขั้นตอน</button>
         <button id="segTl" data-th="🗓️ ไทม์ไลน์งาน" data-en="🗓️ Work Timeline">🗓️ ไทม์ไลน์งาน</button>
       </div>
     </div>
@@ -348,6 +374,9 @@
             <ul class="feed" id="feed"></ul>
           </div>
         </div>
+      </div>
+      <div class="view" id="viewSteps">
+        <div class="sbwrap" id="stepsummary"></div>
       </div>
       <div class="view" id="viewTimeline">
         <div class="tl" id="timeline"></div>
@@ -642,7 +671,48 @@ function renderOverview(){
   });
 
   renderSummary();
+  renderStepSummary();
   renderTimeline();
+}
+
+/* ---- Per-milestone step breakdown (done / in-progress / planned / delayed) ---- */
+function renderStepSummary(){
+  const box=$('#stepsummary'); if(!box) return;
+  const GROUPS=[
+    {key:'done', th:'✅ เสร็จแล้ว', en:'✅ Done', cls:'g-done'},
+    {key:'doing',th:'🔄 กำลังดำเนินการ', en:'🔄 In progress', cls:'g-doing'},
+    {key:'delay',th:'⚠️ ล่าช้า', en:'⚠️ Delayed', cls:'g-delay'},
+    {key:'plan', th:'⏳ วางแผน/รอเริ่ม', en:'⏳ Planned', cls:'g-plan'}
+  ];
+  box.innerHTML = data.initiatives.map((it,idx)=>{
+    const msHtml = it.milestones.filter(m=>m.steps&&m.steps.length).map(m=>{
+      const st=stepStats(m);
+      const groups=GROUPS.map(g=>{
+        const items=m.steps.filter(s=>s.status===g.key);
+        if(!items.length) return '';
+        const chips=items.map(s=>{
+          let d='';
+          if(g.key==='done'&&s.doneAt) d=`<small> · ${esc(fmtDay(s.doneAt))}</small>`;
+          else if(s.due) d=`<small> · ${T('กำหนด','due')} ${esc(fmtDay(s.due))}</small>`;
+          return `<span class="sb-chip">${esc(s.title)}${d}</span>`;
+        }).join('');
+        return `<div class="sb-group"><span class="sb-gtag ${g.cls}">${T(g.th,g.en)} ${items.length}</span>
+          <div class="sb-chips">${chips}</div></div>`;
+      }).join('');
+      return `<div class="sb-ms">
+        <div class="sb-ms-title"><span class="sb-ms-when" style="background:${it.color}">${esc(m.when)}</span>${esc(T(m.titleTH,m.titleEN))}</div>
+        <div class="sb-ms-meta">${T('ทำเสร็จ','Completed')} ${st.done}/${st.total} ${T('ขั้นตอน','steps')} · ${st.pct}%</div>
+        ${groups}
+      </div>`;
+    }).join('');
+    const body = msHtml || `<div class="sb-empty">${T('ยังไม่มีขั้นตอนในโครงการนี้ — เพิ่มขั้นตอนในการ์ดด้านล่าง','No steps in this initiative yet')}</div>`;
+    return `<div class="sb-init" style="--accent:${it.color}">
+      <div class="sb-init-head"><span class="num">${idx+1}</span>
+        <span class="nm">${esc(T(it.titleTH,it.titleEN))}</span>
+        <span class="pc">${initPct(it)}%</span></div>
+      ${body}
+    </div>`;
+  }).join('');
 }
 
 /* ---- Auto progress summary ---- */
@@ -1049,14 +1119,14 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 $('#langBtn').addEventListener('click',()=>{ lang=lang==='th'?'en':'th'; savePrefs(); renderAll(); });
 $('#themeBtn').addEventListener('click',()=>{ theme=theme==='light'?'dark':'light'; savePrefs(); applyTheme(); });
 $('#printBtn').addEventListener('click',()=>window.print());
-$('#segSum').addEventListener('click',()=>{
-  $('#segSum').classList.add('active'); $('#segTl').classList.remove('active');
-  $('#viewSummary').classList.add('active'); $('#viewTimeline').classList.remove('active');
-});
-$('#segTl').addEventListener('click',()=>{
-  $('#segTl').classList.add('active'); $('#segSum').classList.remove('active');
-  $('#viewTimeline').classList.add('active'); $('#viewSummary').classList.remove('active');
-});
+const SEG_VIEWS={sum:['segSum','viewSummary'],steps:['segSteps','viewSteps'],tl:['segTl','viewTimeline']};
+function showView(which){
+  Object.values(SEG_VIEWS).forEach(([b,v])=>{ $('#'+b).classList.remove('active'); $('#'+v).classList.remove('active'); });
+  const [b,v]=SEG_VIEWS[which]; $('#'+b).classList.add('active'); $('#'+v).classList.add('active');
+}
+$('#segSum').addEventListener('click',()=>showView('sum'));
+$('#segSteps').addEventListener('click',()=>showView('steps'));
+$('#segTl').addEventListener('click',()=>showView('tl'));
 $('#fOwner').addEventListener('change',renderCards);
 $('#fStatus').addEventListener('change',renderCards);
 $('#expandAll').addEventListener('click',()=>{ prefs.openAll=true; document.querySelectorAll('.init').forEach(c=>c.classList.add('open')); });
