@@ -712,6 +712,7 @@ function save(){ data.updatedAt = new Date().toISOString();
   const s=JSON.stringify(data);
   localStorage.setItem(STORE_KEY, s);
   if(dataHasContent(data)) localStorage.setItem(BAK_KEY, s); // keep a backup of real (non-empty) data
+  syncPush(); // push to shared Google Sheet (central store), debounced
 }
 function loadPrefs(){ try{return JSON.parse(localStorage.getItem(PREF_KEY))||{}}catch(e){return {}} }
 function savePrefs(){ localStorage.setItem(PREF_KEY, JSON.stringify({lang,theme})); }
@@ -1433,8 +1434,37 @@ $('#resetBtn').addEventListener('click',()=>{
   }
 });
 
+/* ---- Central store: shared Google Sheet (via Apps Script web app) ---- */
+const SHEET_API = 'https://script.google.com/macros/s/AKfycbzJ6mLwp5Fv0YoOClluiEQlA3pjPxt0bGIytw7tIEYi-gO1he2346h8cwxOLxkOQbjq/exec';
+let _pushT=null, _pulling=false;
+function anyInputFocused(){ const a=document.activeElement;
+  return !!(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))); }
+async function apiGet(){ const r=await fetch(SHEET_API,{method:'GET'});
+  if(!r.ok) throw new Error('http '+r.status); return (await r.json()).data; }
+function apiPut(obj){ // text/plain body -> no CORS preflight; Apps Script reads e.postData.contents
+  return fetch(SHEET_API,{method:'POST',body:JSON.stringify(obj)}).catch(()=>{}); }
+function syncPush(){ if(typeof SHEET_API!=='string'||!SHEET_API) return;
+  clearTimeout(_pushT); _pushT=setTimeout(()=>{ if(dataHasContent(data)) apiPut(data); },800); }
+function _cache(d){ localStorage.setItem(STORE_KEY,JSON.stringify(d));
+  if(dataHasContent(d)) localStorage.setItem(BAK_KEY,JSON.stringify(d)); }
+async function syncPull(){ if(_pulling||anyInputFocused()) return; _pulling=true;
+  try{ const d=await apiGet();
+    if(d && d.initiatives){ const nd=migrate(d);
+      if((nd.updatedAt||'') > (data.updatedAt||'')){ data=nd; _cache(data); renderAll();
+        toast(T('อัปเดตจากทีมแล้ว','Synced from team')); } }
+  }catch(e){} finally{ _pulling=false; } }
+
 /* ---- Init ---- */
 renderAll();
+(async function boot(){
+  try{ const d=await apiGet();
+    const rd=(d && d.initiatives)? migrate(d):null;
+    if(rd && dataHasContent(rd) && (!dataHasContent(data) || (rd.updatedAt||'')>=(data.updatedAt||''))){
+      data=rd; _cache(data); renderAll();           // central store wins
+    } else if(dataHasContent(data)){ apiPut(data); } // seed central store from this machine
+  }catch(e){}
+  setInterval(syncPull, 15000);                      // pick up other machines' changes
+})();
 </script>
 </body>
 </html>
