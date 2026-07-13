@@ -248,6 +248,21 @@
     padding:0 11px 4px;margin-top:2px}
   @media(max-width:820px){.step-head{display:none}}
   .step-empty{color:var(--muted2);font-size:12.5px;font-style:italic;padding:2px 2px 8px}
+  .step-detail{margin:-4px 0 9px 34px;display:flex;flex-direction:column;gap:6px}
+  @media(max-width:820px){.step-detail{margin-left:34px}}
+  .step-detail .sd-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sd-btn{font-size:11.5px;font-weight:600;color:var(--muted2);background:none;border:1px solid var(--line2);
+    border-radius:7px;padding:3px 10px;cursor:pointer}
+  .sd-btn:hover{color:var(--txt);border-color:var(--blue2)}
+  .sd-btn.add{color:var(--blue2);border-color:rgba(60,130,246,.45)}
+  .sd-logs{list-style:none;display:flex;flex-direction:column;gap:5px;margin:1px 0 2px}
+  .sd-logs li{display:flex;gap:9px;font-size:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:6px 9px}
+  .sd-logs .meta{color:var(--muted2);font-size:10.5px;white-space:nowrap;flex:0 0 auto}
+  .sd-logs .msg{flex:1;word-break:break-word}
+  .sd-logs .who{color:var(--accent);font-weight:700}
+  .sd-logs .del{color:var(--muted2);cursor:pointer;border:none;background:none;font-size:13px;line-height:1}
+  .sd-logs .del:hover{color:var(--red)}
 
   /* add work item (milestone) */
   .ms-add{display:grid;grid-template-columns:1fr 180px auto;gap:9px;align-items:center;margin:14px 0 2px;
@@ -599,6 +614,12 @@ const STATUSES = [
   {key:'risk', th:'ล่าช้า / มีปัญหา', en:'Delayed / At risk', cls:'b-risk'}
 ];
 function statusColor(k){ return {todo:'var(--muted)',prog:'var(--amber)',done:'var(--green)',risk:'var(--red)'}[k]||'var(--muted)'; }
+function stepColor(k){ return {plan:'var(--muted)',doing:'var(--amber)',done:'var(--green)',delay:'var(--red)'}[k]||'var(--muted)'; }
+// log badge that picks the right vocabulary: step logs (plan/doing/delay or with a stepId) vs milestone logs
+function logBadge(status,stepId){ if(!status) return '';
+  const isStep = !!stepId || status==='plan' || status==='doing' || status==='delay';
+  const o = isStep ? stepObj(status) : statusObj(status);
+  return `<span class="badge ${o.cls}" style="margin-right:6px">${T(o.th,o.en)}</span>`; }
 function statusObj(k){ return STATUSES.find(s=>s.key===k) || STATUSES[0]; }
 
 /* ---- Step (sub-task) definitions ---- */
@@ -668,7 +689,8 @@ function migrate(d){
     if(!m.status) m.status = m.pct>=100?'done':m.pct>0?'prog':'todo';
     if(!Array.isArray(m.logs)) m.logs=[];
     if(!Array.isArray(m.steps)) m.steps=[];
-    m.steps.forEach(s=>{               // drop clearly-invalid dates (e.g. year 0002 typos)
+    m.steps.forEach((s,si)=>{          // drop clearly-invalid dates (e.g. year 0002 typos)
+      if(!s.id) s.id = 's'+Date.now().toString(36)+'_'+si+'_'+Math.floor(Math.random()*1e4); // stable id for per-step notes
       if(s.due && !validYear(s.due)) s.due='';
       if(s.doneAt && !validYear(s.doneAt)) s.doneAt=null;
     });
@@ -909,18 +931,17 @@ function renderFeed(){
   const feed=$('#feed'); if(!feed) return;
   const all=[];
   data.initiatives.forEach((it,i)=>it.milestones.forEach(m=>(m.logs||[]).forEach(lg=>{
-    all.push({t:lg.t,who:lg.who,msg:lg.msg,status:lg.status,color:it.color,
+    all.push({t:lg.t,who:lg.who,msg:lg.msg,status:lg.status,stepId:lg.stepId,color:it.color,
       ms:T(m.titleTH,m.titleEN), init:T(it.titleTH,it.titleEN), initNum:i+1});
   })));
   all.sort((a,b)=> a.t<b.t?1:a.t>b.t?-1:0);
   const top=all.slice(0,12);
   if(!top.length){ feed.innerHTML=`<div class="empty">${T('ยังไม่มีกิจกรรม','No activity yet')}</div>`; return; }
   feed.innerHTML=top.map(a=>{
-    const st=a.status?statusObj(a.status):null;
     return `<li><span class="fdot" style="background:${a.color}"></span>
       <div class="fc">
         <div class="fproj" style="color:${a.color}">${a.initNum}. ${esc(a.init)}</div>
-        <div>${st?`<span class="badge ${st.cls}" style="margin-right:6px">${T(st.th,st.en)}</span>`:''}${esc(a.msg)}</div>
+        <div>${logBadge(a.status,a.stepId)}${esc(a.msg)}</div>
         <div class="fmeta">📍 ${esc(a.ms)} · ${fmtDate(a.t)}${a.who?' · '+esc(a.who):''}</div>
       </div></li>`;
   }).join('');
@@ -1109,12 +1130,17 @@ function renderCards(){
           <button class="step-del" title="${T('ลบขั้นตอน','Delete step')}">✕</button>`;
         row.querySelector('.step-status').addEventListener('change',e=>{
           const nv=e.target.value;
-          s.status=nv;
-          if(nv==='done'){ if(!s.doneAt) s.doneAt=todayStr();
-            m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
-              msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')}`,status:'done'});
-          } else { s.doneAt=null; }
-          save(); renderCards(); renderOverview();
+          openDetailModal({
+            title:T('อัปเดตความคืบหน้าขั้นตอน','Update step progress'),
+            subHTML:`${esc(s.title)} → <b style="color:${stepColor(nv)}">${T(stepObj(nv).th,stepObj(nv).en)}</b>`,
+            placeholder:T('อธิบายความคืบหน้า / เหตุผลของการเปลี่ยนสถานะ...','Describe progress / reason for this status change...'),
+            onCommit:(detail,who)=>{
+              s.status=nv;
+              if(nv==='done'){ if(!s.doneAt) s.doneAt=todayStr(); } else { s.doneAt=null; }
+              m.logs.unshift({t:new Date().toISOString(),who,msg:detail,status:nv,stepId:s.id,step:s.title});
+            },
+            onRevert:()=>{ renderCards(); }  // discard the select change
+          });
         });
         row.querySelector('.due').addEventListener('change',e=>{
           const v=e.target.value||'';
@@ -1127,7 +1153,7 @@ function renderCards(){
           s.doneAt=v||null;
           if(v && s.status!=='done'){ s.status='done';
             m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
-              msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')} (${fmtDay(v)})`,status:'done'});
+              msg:`${T('ขั้นตอน','Step')} “${s.title}” ${T('เสร็จสิ้น','completed')} (${fmtDay(v)})`,status:'done',stepId:s.id,step:s.title});
           }
           save(); renderCards(); renderOverview();
         });
@@ -1139,6 +1165,37 @@ function renderCards(){
           m.steps.splice(si,1); save(); renderCards(); renderOverview();
         });
         mbody.appendChild(row);
+
+        // ---- per-step progress: add-note button + this step's own history ----
+        const slogs = m.logs.filter(lg=>lg.stepId===s.id);
+        const det=el('div','step-detail');
+        det.innerHTML=`<div class="sd-actions">
+          <button class="sd-btn add sd-add">＋ ${T('ความคืบหน้า','Progress')}</button>
+          ${slogs.length?`<button class="sd-btn sd-toggle">💬 ${T('ประวัติ','History')} (${slogs.length}) ▾</button>`:''}
+        </div>`;
+        const slist=el('ul','sd-logs'); slist.style.display='none';
+        slogs.forEach(lg=>{
+          const stB = logBadge(lg.status, lg.stepId);
+          const li=el('li',null,`<span class="meta">${fmtDate(lg.t)}</span>`
+            +`<span class="msg">${stB}${lg.who?`<span class="who">${esc(lg.who)}:</span> `:''}${esc(lg.msg)}</span>`
+            +`<button class="del" title="${T('ลบ','Delete')}">✕</button>`);
+          li.querySelector('.del').addEventListener('click',()=>{
+            const gi=m.logs.indexOf(lg); if(gi>-1) m.logs.splice(gi,1); save(); renderCards(); renderOverview();
+          });
+          slist.appendChild(li);
+        });
+        det.appendChild(slist);
+        det.querySelector('.sd-add').addEventListener('click',()=>{
+          openDetailModal({
+            title:T('เพิ่มความคืบหน้าขั้นตอน','Add step progress'),
+            subHTML:`<b>${esc(s.title)}</b>`,
+            placeholder:T('บันทึกความคืบหน้าของขั้นตอนนี้...','Add a progress note for this step...'),
+            onCommit:(detail,who)=>{ m.logs.unshift({t:new Date().toISOString(),who,msg:detail,stepId:s.id,step:s.title}); }
+          });
+        });
+        const sTg=det.querySelector('.sd-toggle');
+        if(sTg) sTg.addEventListener('click',()=>{ slist.style.display = slist.style.display==='none'?'flex':'none'; });
+        mbody.appendChild(det);
       });
 
       // add-step form (with status + labeled due date)
@@ -1157,9 +1214,10 @@ function renderCards(){
         const status=addf.querySelector('.st-status').value;
         if(!title){ toast(T('กรุณากรอกชื่อขั้นตอน','Please enter a step name')); return; }
         if(due && !validYear(due)){ toast(T('ปีไม่ถูกต้อง — ใส่ปี ค.ศ. เต็ม เช่น 2026','Invalid year — use a full year like 2026')); return; }
-        m.steps.push({title,status,due:due||'',addedAt:todayStr(),doneAt: status==='done'?todayStr():null});
+        const nid='s'+Date.now().toString(36)+Math.floor(Math.random()*1e4);
+        m.steps.push({id:nid,title,status,due:due||'',addedAt:todayStr(),doneAt: status==='done'?todayStr():null});
         m.logs.unshift({t:new Date().toISOString(),who:prefs.lastWho||'',
-          msg:`${T('เพิ่มขั้นตอน','Added step')}: ${title}${due?` (${T('กำหนดเสร็จ','due')} ${fmtDay(due)})`:''}`});
+          msg:`${T('เพิ่มขั้นตอน','Added step')}: ${title}${due?` (${T('กำหนดเสร็จ','due')} ${fmtDay(due)})`:''}`,stepId:nid,step:title});
         save(); renderCards(); renderOverview();
       };
       addf.querySelector('.st-add').addEventListener('click',doAdd);
@@ -1193,7 +1251,7 @@ function renderCards(){
       }
       m.logs.forEach((lg,li)=>{
         const item=el('li');
-        const stB = lg.status?`<span class="badge ${statusObj(lg.status).cls}" style="margin-right:7px">${T(statusObj(lg.status).th,statusObj(lg.status).en)}</span>`:'';
+        const stB = logBadge(lg.status, lg.stepId);
         item.innerHTML=`<span class="meta">${fmtDate(lg.t)}</span>
           <span class="msg">${stB}${lg.who?`<span class="who">${esc(lg.who)}:</span> `:''}${esc(lg.msg)}</span>
           <button class="del" title="${T('ลบ','Delete')}">✕</button>`;
@@ -1261,8 +1319,24 @@ function openStatusModal(ctx){
   $('#statusModal').classList.add('show');
   setTimeout(()=>$('#smDetail').focus(),50);
 }
+// generic reuse of the same dialog for free-form / per-step progress notes
+function openDetailModal(cfg){
+  pendingStatus={_generic:true, forceDetail:cfg.forceDetail!==false, onCommit:cfg.onCommit, onRevert:cfg.onRevert};
+  $('#smTitle').textContent = cfg.title || T('บันทึกความคืบหน้า','Add progress');
+  $('#smSub').innerHTML = cfg.subHTML || '';
+  $('#smDetailLbl').innerHTML = T('รายละเอียด','Details') + (pendingStatus.forceDetail?' <span class="req">*</span>':'');
+  $('#smWhoLbl').textContent = T('ผู้บันทึก','Recorded by');
+  $('#smDetail').placeholder = cfg.placeholder || T('อธิบายรายละเอียด...','Describe the details...');
+  $('#smDetail').value=''; $('#smWho').value = prefs.lastWho||'';
+  $('#smErr').style.display='none';
+  $('#smCancel').textContent=T('ยกเลิก','Cancel'); $('#smSave').textContent=T('บันทึก','Save');
+  $('#statusModal').classList.add('show');
+  setTimeout(()=>$('#smDetail').focus(),50);
+}
 function closeStatusModal(revert){
   if(revert && pendingStatus){
+    if(pendingStatus._generic){ const r=pendingStatus.onRevert; pendingStatus=null;
+      $('#statusModal').classList.remove('show'); if(r) r(); return; }
     pendingStatus.sel.value = pendingStatus.oldStatus;
     pendingStatus.sel.className = 'status-sel st-'+pendingStatus.oldStatus;
   }
@@ -1272,10 +1346,21 @@ function closeStatusModal(revert){
 function commitStatus(){
   if(!pendingStatus) return;
   const detail=$('#smDetail').value.trim();
+  const who=$('#smWho').value.trim();
+  if(pendingStatus._generic){
+    if(pendingStatus.forceDetail && !detail){ $('#smErr').textContent=T('กรุณากรอกรายละเอียดก่อนบันทึก','Please enter details before saving');
+      $('#smErr').style.display='block'; $('#smDetail').focus(); return; }
+    const cb=pendingStatus.onCommit; pendingStatus=null;
+    $('#statusModal').classList.remove('show');
+    if(cb) cb(detail,who);
+    prefs.lastWho=who; savePrefs(); save();
+    renderCards(); renderOverview();
+    toast(T('บันทึกความคืบหน้าแล้ว','Progress saved'));
+    return;
+  }
   if(!detail){ $('#smErr').textContent=T('กรุณากรอกรายละเอียดก่อนบันทึก','Please enter details before saving');
     $('#smErr').style.display='block'; $('#smDetail').focus(); return; }
   const {m,newStatus}=pendingStatus;
-  const who=$('#smWho').value.trim();
   m.status=newStatus;
   if(newStatus==='done') m.pct=100; else if(newStatus==='todo') m.pct=0;
   m.logs.unshift({t:new Date().toISOString(),who,msg:detail,status:newStatus});
