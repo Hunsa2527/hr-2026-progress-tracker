@@ -168,8 +168,17 @@
   .kpis{display:flex;gap:9px;flex-wrap:wrap}
   .kpi{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;
     display:flex;align-items:center;gap:7px}
-  .kpi .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .kpi .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:0 0 auto}
   .kpi.hit .dot{background:var(--green)} .kpi.hit{border-color:rgba(34,197,139,.4)}
+  .kpi-edit{display:inline-block;font-family:inherit;font-size:12.5px;color:inherit;outline:none;cursor:text;
+    min-width:26px;border-bottom:1px dashed transparent;word-break:break-word}
+  .kpi-edit:hover{border-bottom-color:var(--line2)}
+  .kpi-edit:focus{border-bottom-color:var(--blue2)}
+  .kpi-del{border:none;background:none;color:var(--muted2);cursor:pointer;font-size:11px;line-height:1;padding:0;flex:0 0 auto}
+  .kpi-del:hover{color:var(--red)}
+  .kpi-add{background:transparent;border:1px dashed var(--line2);border-radius:20px;padding:6px 13px;
+    font-size:12.5px;font-family:inherit;font-weight:600;color:var(--blue2);cursor:pointer}
+  .kpi-add:hover{border-color:var(--blue2);background:var(--card2)}
 
   /* Milestones */
   .ms{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:11px;background:var(--card2)}
@@ -736,6 +745,7 @@ function migrate(d){
       if(!di.milestones.some(m=>m.id===sm.id)) di.milestones.push(structuredClone(sm));
     });
   });
+  d.initiatives.forEach(it=>{ if(!Array.isArray(it.kpis)) it.kpis=[]; }); // KPIs are editable -> always an array
   d.initiatives.forEach(it=>(it.milestones||[]).forEach(m=>{
     if(!m.status) m.status = m.pct>=100?'done':m.pct>0?'prog':'todo';
     if(!Array.isArray(m.logs)) m.logs=[];
@@ -1202,12 +1212,36 @@ function renderCards(){
     const kwrap=el('div','kpis');
     it.kpis.forEach((k,ki)=>{
       const chip=el('div','kpi'+(k.hit?' hit':''));
-      chip.innerHTML=`<span class="dot"></span>${esc(T(k.th,k.en))}`;
+      chip.innerHTML=`<span class="dot"></span>`
+        +`<span class="kpi-edit" contenteditable="plaintext-only" spellcheck="false"`
+        +` title="${T('คลิกเพื่อแก้ตัวชี้วัด','Click to edit this KPI')}">${esc(T(k.th,k.en))}</span>`
+        +`<button class="kpi-del" title="${T('ลบตัวชี้วัด','Delete KPI')}">✕</button>`;
       chip.style.cursor='pointer';
       chip.title=T('คลิกเพื่อทำเครื่องหมายว่าบรรลุแล้ว','Click to mark as achieved');
-      chip.addEventListener('click',()=>{ k.hit=!k.hit; save(); renderCards(); });
+      // clicking the chip toggles "achieved" — except on the text or the delete button
+      chip.addEventListener('click',e=>{
+        if(e.target.closest('.kpi-edit') || e.target.closest('.kpi-del')) return;
+        k.hit=!k.hit; save(); renderCards();
+      });
+      const ke=chip.querySelector('.kpi-edit');
+      ke.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ke.blur(); } });
+      ke.addEventListener('blur',()=>{
+        const v=ke.textContent.trim();
+        if(!v){ renderCards(); return; }
+        if(v!==T(k.th,k.en)){ k.th=v; k.en=v; save(); renderCards(); }
+      });
+      chip.querySelector('.kpi-del').addEventListener('click',()=>{
+        it.kpis.splice(ki,1); save(); renderCards(); toast(T('ลบตัวชี้วัดแล้ว','KPI deleted'));
+      });
       kwrap.appendChild(chip);
     });
+    const kadd=el('button','kpi-add','＋ '+T('เพิ่มตัวชี้วัด','Add KPI'));
+    kadd.addEventListener('click',()=>{
+      it.kpis.push({th:T('ตัวชี้วัดใหม่','New KPI'),en:'New KPI',hit:false});
+      save(); renderCards();
+      toast(T('เพิ่มตัวชี้วัดแล้ว — คลิกที่ข้อความเพื่อแก้','KPI added — click the text to edit'));
+    });
+    kwrap.appendChild(kadd);
     body.appendChild(kwrap);
 
     // Milestones
