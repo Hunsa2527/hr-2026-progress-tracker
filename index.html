@@ -1618,6 +1618,36 @@ $('#exportXlsBtn').addEventListener('click',()=>{
     });
   });
 
+  // Sheet 3 — progress log (every recorded update, newest first per work item)
+  const lgLabel = lg => { if(!lg.status) return '';
+    const isStep = !!lg.stepId || lg.status==='plan' || lg.status==='doing' || lg.status==='delay';
+    const o = isStep ? stepObj(lg.status) : statusObj(lg.status);
+    return T(o.th,o.en); };
+  const lgStyle = lg => { const s=lg.status||'';
+    if(s==='done') return 'sDone';
+    if(s==='doing'||s==='prog') return 'sProg';
+    if(s==='delay'||s==='risk') return 'sRisk';
+    return 'sTodo'; };
+  const logHead = xlRow(['โครงการ','งานย่อย','ขั้นตอน','วันที่บันทึก','สถานะ','ผู้บันทึก','รายละเอียดความคืบหน้า']
+    .map(h=>xlCell(h,'String','hdr')).join(''));
+  let logRows='';
+  data.initiatives.forEach((it,i)=>{
+    it.milestones.forEach(m=>{
+      (m.logs||[]).forEach(lg=>{
+        logRows += xlRow(
+          xlCell(`${i+1}. ${T(it.titleTH,it.titleEN)}`)+
+          xlCell(T(m.titleTH,m.titleEN))+
+          xlCell(lg.step||'')+
+          xlCell(fmtDate(lg.t))+
+          (lg.status ? xlCell(lgLabel(lg),'String',lgStyle(lg)) : xlCell(''))+
+          xlCell(lg.who||'')+
+          xlCell(lg.msg||'')
+        );
+      });
+    });
+  });
+  if(!logRows) logRows = xlRow(xlCell('—')+xlCell('')+xlCell('')+xlCell('')+xlCell('')+xlCell('')+xlCell(T('ยังไม่มีบันทึกความคืบหน้า','No progress updates yet')));
+
   const cols = n => Array.from({length:n},()=>'<Column ss:AutoFitWidth="1" ss:Width="120"/>').join('');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -1634,6 +1664,7 @@ $('#exportXlsBtn').addEventListener('click',()=>{
  </Styles>
  <Worksheet ss:Name="สรุปโครงการ"><Table>${cols(6)}${sumHead}${sumRows}</Table></Worksheet>
  <Worksheet ss:Name="รายละเอียดงาน"><Table>${cols(10)}${detHead}${detRows}</Table></Worksheet>
+ <Worksheet ss:Name="บันทึกความคืบหน้า"><Table>${cols(6)}<Column ss:AutoFitWidth="0" ss:Width="420"/>${logHead}${logRows}</Table></Worksheet>
 </Workbook>`;
 
   const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
